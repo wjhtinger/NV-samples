@@ -35,6 +35,7 @@ OBJS   += maxim/c_max9286_9271_ov10640lsoff.o
 OBJS   += maxim/d_max9286_9271_mt9v024.o
 OBJS   += maxim/ref_max9286_96705_ar0231.o
 OBJS   += maxim/ref_max9286_96705_ar0231_rccb.o
+OBJS   += maxim/ref_max9286_96705_ov2718_xc7027.o
 OBJS   += maxim/ref_max9288_96705_ov10635.o
 OBJS   += maxim/m_max9288_96705_ar0140.o
 OBJS   += tpg/tpg.o
@@ -46,6 +47,8 @@ OBJS   += ../drv/isc_ov10635.o
 OBJS   += ../drv/isc_ov10640.o
 OBJS   += ../drv/isc_ar0231.o
 OBJS   += ../drv/isc_ar0231_rccb.o
+OBJS   += ../drv/isc_ov2718.o
+OBJS   += ../drv/isc_xc7027.o
 OBJS   += ../../utils/log_utils.o
 
 LDLIBS += -lnvmedia_isc

@@ -31,7 +31,8 @@ ImgDevDriver *ImgGetDevice(char *moduleName)
         GetDriver_ref_max9286_96705_ar0231(),
         GetDriver_ref_max9288_96705_ov10635(),
         GetDriver_m_max9288_96705_ar0140(),
-        GetDriver_tpg()
+        GetDriver_tpg(),
+        GetDriver_ref_max9286_96705_ov2718_xc7027()
     };
 
     if(!moduleName) {
