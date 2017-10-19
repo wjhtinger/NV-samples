@@ -1,0 +1,21 @@
+#
+# Copyright (c) 2013, NVIDIA CORPORATION. All rights reserved.
+#
+# NVIDIA CORPORATION and its licensors retain all intellectual property
+# and proprietary rights in and to this software, related documentation
+# and any modifications thereto. Any use, reproduction, disclosure or
+# distribution of this software and related documentation without an express
+# license agreement from NVIDIA CORPORATION is strictly prohibited.
+#
+
+An example illustrating EGL stream rendering by rendering an arbitrary
+nvgldemo app to a texture and then applying that texture to the faces of
+a spinning cube.
+
+Here, gears and ctree are the EGLStream producers and eglstreamcube is the
+EGLStream consumer and can use the incoming frames as textures to draw
+a face of the cube.
+
+./eglstreamcube -socket /tmp/test &
+./gears -eglstreamsocket /tmp/test -1 &
+./ctree -eglstreamsocket /tmp/test &

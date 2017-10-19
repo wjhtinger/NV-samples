@@ -1,0 +1,14 @@
+-m /mnt/app -y 2,512 -M -p app1
+-m /mnt/app -d 10,512 -M -p app2
+-m /mnt/app -y 1,4 -G -p app3
+-m /mnt/maps -d 5,150 -K -p maps1
+-m /mnt/maps -m 2,512 -M -p maps2
+-m /mnt/maps -y 2,2 -G -p maps3
+-m /mnt/media -y 48,150 -M -p media1
+-m /mnt/media -y 2,4 -G -p media2
+-m /mnt/media -d 20,4 -K -p media3
+-m /mnt/other -m 5,10 -K -p phonebook
+-m /mnt/other -d 50,20 -M -p mails
+-m /mnt/other -d 20,1 -K -p messages
+-m /mnt/ota -y 2,3 -G -p firmware1
+-m /mnt/ota -m 4,1024 -M -p firmware2

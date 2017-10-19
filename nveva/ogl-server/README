@@ -1,0 +1,22 @@
+A simple EGL cross-partition egldevice consumer application.
+Listens for connection on port 8888 by default.
+Building:
+# export PLATFORM_TOPDIR=<path to vibrante-vcm30t124-linux>
+# make
+
+Usage:
+1. Copy to ogl-server to VM1 rootfs.
+2. Configure VM1 hv0 interface IP:12.0.0.1 NM:255.255.255.0
+3. Configure VM2 hv0 interface IP:12.0.0.2 NM:255.255.255.0
+4. Start ogl-server with no arguments on VM1
+   (vcm30t124) # ogl-server
+   (t186ref)   # ogl-server -d1
+   (QNX)       # ogl-server -i hv0 -d 1
+5. Start eglcrosspart producer on VM2:
+   # ./egldevice/eglcrosspart -proctype producer -ip 12.0.0.1
+
+Additional info:
+Use the following commands to list all available options:
+   # ogl-server -h
+
+In QNX passing interface value is necessary.

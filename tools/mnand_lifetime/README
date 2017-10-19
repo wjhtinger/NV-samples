@@ -1,0 +1,79 @@
+
+###########################################################################
+# Copyright (c) 2015-2016, NVIDIA CORPORATION. All rights reserved.
+###########################################################################
+
+Program Invocation:
+
+mnand_lifetime_test -d <path to mnand device> -t <target_age> [-c chunk_size]
+                [-v 0-3] [-t 1-15] [-f file] [-l log file name] [-s]
+
+where:
+   -d mnand_path        Path to mnand device (for instance, /dev/mnand0)
+   -p cycles,hours      Maximum aging pace expressed in P/E cycles and hours.
+                        Default is 1000,168 meaning the tool will age at most
+                        1000 P/E cycles every 168 hours (or 7 days).
+   -c chunk_size        Chunk of data written to file (in KB). Default 128.
+   -v verbosity         Set verbosity level (0 - 3). Default 0.
+   -t lifetime age      Lifetime age [1 - 15] for the simulation. Default is 15 years.
+   -f filepath          File which has all write commands.
+   -l log file name     Log file name to dump the statistics.
+   -s                   fsync on write with all threads
+
+
+Command Format for the write (Either through interactive mode or file input mode):
+
+-m <Target partition mount point name> || -r <device node>
+    -d <number of files, size of each file> || -y <number of files, size of each file>
+    -p <prefix for the file generated>
+    [-f <number of MB>]
+    [-K || -M || -G] [-s]
+
+where:
+   -m Target partition mount point name            Path to Target partition mount point.
+   -r device node name                             Device node represent the Target partition.
+   -d <number of files, size of each file>         Number of files and size of each
+                                                       file to be written per day.
+   -y <number of files, size of each file>         Number of files and size of each file
+                                                       to be written per year.
+   -p <unique prefix for the file going to get generated>.
+   -f <number of MB>                               Number of MB to write in thread before
+                                                       relinquishing. Default is 1MB.
+   -s                                              Perform fsync on write (if global flag is
+                                                       set, it takes precedence)
+   -K | -M | -G  Filesize type. -K: KB, -M: MB, -G: GB (Default: bytes).
+
+Please Note: -d and -y are mutually exclusive and both cannot be given in a single invocation.
+
+
+To test:
+(1) Way to create partition:
+Example for Linux:
+
+#MNANDDEV=mmcblk0
+#parted /dev/${MNANDDEV} mklabel gp             # delete all partitions and create new GPT partition layout
+#parted /dev/${MNANDDEV} mkpart app 20MB 2000MB # created a partition size of 2GB
+#parted /dev/${MNANDDEV} mkpart ext 2001MB 12000MB # created a partition size of 10GB
+#shutdown
+
+After reboot partitions will be /dev/mmcblkp1 /dev/mmcblkp2
+Then run:
+#mkfs.ext4 /dev/mmcblkp1
+#mount -t ext4 /dev/mmcblkp1 /mnt
+
+Now /mnt can be used as a mountpoint.
+
+Example for Qnx:
+#MNANDDEV=emmc0
+#fdisk /dev/${MNANDDEV} delete -a               # delete all partitions
+#fdisk /dev/${MNANDDEV} add -t 177 -c 0,26240   # Each cyl is about 1MB. This will create
+                                                    # a partition with about 26240MB
+#fdisk /dev/${MNANDDEV} add -t 178 -p 100       # 100% remaining
+#shutdown
+
+After reboot partitions will be /dev/emmc0t177, /dev/emmc0t178.
+Then run:
+#mkqnx6fs /dev/emmc0t177
+#mount -t qnx6 /dev/emmc0t177 /mnt
+
+Now /mnt can be used as a mountpoint.

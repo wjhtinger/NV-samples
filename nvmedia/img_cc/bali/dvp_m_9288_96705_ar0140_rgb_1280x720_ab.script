@@ -1,0 +1,27 @@
+#
+#  Copyright (c) 2016, NVIDIA CORPORATION.  All rights reserved.
+#
+#  NVIDIA Corporation and its licensors retain all intellectual property
+#  and proprietary rights in and to this software and related documentation
+#  and any modifications thereto.  Any use, reproduction, disclosure or
+#  distribution of this software and related documentation without an express
+#  license agreement from NVIDIA Corporation is strictly prohibited.
+#
+# Capture Config Parameters
+; Interface: csi-ab
+; Input Format: rgb
+; Resolution: 1280x720
+; CSI Lanes: 4
+; I2C Device: 7
+; Sensor Address: 0x60
+; Deserializer Address: 0xd0
+
+d0 09 40 # Enable auto pixel detect
+
+d0 17 1E # Set high bandwidth
+
+d0 14 00 # Do not invert hs/vs
+
+d0 60 10 # Set to rgb
+
+d0 65 37 # Enable data lanes d0-d3

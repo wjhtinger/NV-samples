@@ -1,0 +1,44 @@
+/**
+@page touchpads Touchpads
+
+- @subpage scrolling
+- @subpage clickpad_softbuttons
+- @subpage tapping
+- @subpage gestures
+- @subpage palm_detection
+- @subpage t440_support
+- @subpage touchpad_jumping_cursor
+- @subpage absolute_coordinate_ranges
+
+@page touchscreens Touchscreens
+
+- @subpage absolute_axes
+
+@page pointers Mice, Trackballs, etc.
+
+- @subpage motion_normalization
+- @subpage middle_button_emulation
+
+@page tablets Graphics Tablets
+
+- @subpage tablet-support
+
+@page general General setup
+
+- @subpage udev_config
+- @subpage seats
+
+@page misc Users
+
+- @subpage faq
+- @subpage tools
+- @subpage reporting_bugs
+
+@page developers Developers
+
+- @subpage building_libinput
+- @subpage test-suite
+- @subpage tools
+- @subpage pointer-acceleration
+
+*/

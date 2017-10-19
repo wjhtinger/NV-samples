@@ -1,0 +1,21 @@
+
+# Target system
+SET(CMAKE_SYSTEM_NAME Linux)
+
+# Cross compiler
+SET(CMAKE_C_COMPILER ###_C_COMPILER_###)
+SET(CMAKE_CXX_COMPILER ###_CXX_COMPILER_###)
+
+# Target environment
+SET(CMAKE_FIND_ROOT_PATH ###_ROOT_PATH_###)
+
+# Look for programs only in host system
+SET(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+
+# Look for libraries only in target environment
+SET(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+SET(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+SET(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
+
+# Override wayland-scanner with shipped version
+SET(WAYLAND_SCANNER_EXECUTABLE ###_WAYLAND_SCANNER_###)

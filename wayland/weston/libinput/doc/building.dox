@@ -1,0 +1,100 @@
+/**
+@page building_libinput libinput build instructions
+
+Instructions on how to build libinput and its tools and how to build against
+libinput.
+
+@section building Building libinput
+
+libinput uses automake, a build is usually the following three-step process
+
+@code
+$> git clone git://anongit.freedesktop.org/git/wayland/libinput
+$> cd libinput
+$> ./autogen.sh --prefix=/usr --libdir=/usr/lib64
+$> make
+$> sudo make install
+@endcode
+
+@note On Debian-based distributions including Ubuntu and its derivatives skip the
+```--libdir=/usr/lib64``` argument.
+
+A successful build requires the @ref building_dependencies to be installed
+at configure time.
+
+@subsection building_dependencies Build dependencies
+
+libinput has a few build-time dependencies that must be installed prior to
+running configure. In most cases, it is sufficient to install the
+dependencies that your distribution uses to build the libinput package.
+These can be installed with one of the following commands:
+
+<ul>
+<li><b>Debian/Ubuntu</b> based distributions: ```sudo apt-get build-dep
+libinput```</li>
+<li><b>Fedora 22</b> and later: ```sudo dnf builddep libinput```</li>
+<li><b>SuSE/RHEL/CentOS/Fedora 21</b> and earlier: ```sudo yum-builddep libinput```</li>
+<li><b>Arch</b>:
+<pre>
+$> abs extra/libinput
+$> cd $(mktemp -d)
+$> cp /var/abs/extra/libinput/PKGBUILD .
+$> makepkg --syncdeps --nobuild
+</pre>
+</li>
+</ul>
+
+If dependencies are missing, a message ```No package 'foo' found``` will be
+shown during the configure stage. See
+<a href="https://who-t.blogspot.com.au/2014/05/configure-fails-with-no-package-foo.html">this blog post here</a>.
+for instructions on how to fix it.
+
+@subsection building_libwacom Building without libwacom
+
+libwacom is required by libinput's tablet code to gather additional
+information about tablets that is not available from the kernel device
+itself. libwacom is required by default but can be skipped when @ref
+building with the ``--disable-libwacom`` argument.
+
+@code
+$> ./autogen.sh --disable-libwacom --prefix=/usr --libdir=/usr/lib64
+@endcode
+
+Disabling libwacom is safe to do for environments where full tablet support
+is not required. Note that libinput provides tablet support even without
+libwacom, but some features may be missing or working differently.
+
+@subsection buildling_event-gui Building the graphical helper tool
+
+Only the commandline @ref tools are installed by distributions. The
+@ref event-gui graphical helper tools is only available in the source
+repository.
+
+The graphical helper tool is optional by default and requires extra
+libraries to build. If these libraries are not detected, the tool will not
+be built. If you need the tool for debugging purposes, use the
+``--enable-event-gui`` argument when @ref building.
+
+@code
+$> ./autogen.sh --enable-event-gui --prefix=/usr --libdir=/usr/lib64
+@endcode
+
+As usual, any missing library headers will then trigger an error and can be
+addressed one-by-one.
+
+
+@section building_against Building against libinput
+
+libinput provides a
+[pkg-config](https://www.freedesktop.org/wiki/Software/pkg-config/) file.
+Software that uses libinput should use pkg-config and the
+`PKG_CHECK_MODULES` autoconf macro.
+Otherwise, the most rudimentary way to compile and link a program against
+libinput is:
+
+    gcc -o myprogram myprogram.c `pkg-config --cflags --libs libinput`
+
+For further information on using pkgconfig see the pkg-config documentation.
+
+*/
+

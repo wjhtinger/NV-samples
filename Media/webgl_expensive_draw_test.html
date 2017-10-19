@@ -1,0 +1,261 @@
+<html>
+<head>
+<title>WebGL expensive draw test</title>
+<script type="text/javascript">
+/*
+ * Copyright (c) 2015 NVIDIA Corporation.  All rights reserved.
+ *
+ * NVIDIA Corporation and its licensors retain all intellectual property
+ * and proprietary rights in and to this software, related documentation
+ * and any modifications thereto.  Any use, reproduction, disclosure or
+ * distribution of this software and related documentation without an express
+ * license agreement from NVIDIA Corporation is strictly prohibited.
+ */
+
+/*
+ * Based on expensive_drawcall.c (gles2_expensive_draw)
+ *
+ * Draws some amount of drawcalls with a number of triangles.
+ *
+ * Parameters such as number of triangles per drawcall, drawcalls per frame,
+ * and triangle size can be choosen using command line options.
+ *
+ * Inside the shaders, they will spin for some amount of loops.
+ * This way, a drawcall, pixel or vertex can be made (almost) arbitrary expensive.
+ *
+ *
+ */
+
+var id = 0;
+
+var vertexShaderSource = [
+    "attribute vec4 position;\n",
+    "uniform float unused;\n",
+    "void main()\n",
+    "{\n",
+    "    float accumulated = 0.0;\n",
+    "    for (int i = 0; i < $(loopCount); i += 1) {\n",
+    "        accumulated += unused;\n",
+    "    }\n",
+    "    gl_Position = position;\n",
+    "    gl_Position.x += accumulated;\n",
+    "}\n"].join('');
+
+var fragmentShaderSource = [
+    "precision highp float;\n",
+    "uniform float unused;\n",
+    "void main()\n",
+    "{\n",
+    "    float accumulated = 0.0;\n",
+    "    for (int i = 0; i < $(loopCount); i += 1) {\n",
+    "        accumulated += unused;\n",
+    "    }\n",
+    "    gl_FragColor = vec4(0, 1, 0, 1);\n",
+    "    gl_FragColor.r += accumulated;\n",
+    "}\n"].join('');
+
+var GlobalState = {
+    vertexLoopCount: 1,
+    fragmentLoopCount: 1,
+    triangles: 10000,
+    triangleSize: 30,
+    drawcallsPerFrame: 10,
+    usesElements: true
+};
+
+var canvas;
+var gl;
+
+var clear = function(gl, clearColor) {
+    gl.clearColor(clearColor % 1, (clearColor + 0.3) % 1, (clearColor + 0.6) % 1, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+};
+
+var TEST_WIDTH = 640;
+var TEST_HEIGHT = 480;
+
+var initWebGL = function() {
+    if (canvas) {
+        var ext = gl.getExtension('WEBGL_lose_context');
+        if (ext) {
+            ext.loseContext();
+        }
+        document.body.removeChild(canvas);
+    }
+    canvas = document.createElement('canvas');
+    canvas.width = TEST_WIDTH;
+    canvas.height = TEST_HEIGHT;
+    gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    id += 1;
+    clear(gl, id / 5);
+    document.body.appendChild(canvas);
+
+    gl.getExtension('OES_element_index_uint');
+};
+
+var loadParameters = function() {
+    var getInt = function(id) {
+        return parseInt(document.getElementById(id).value);
+    };
+    for (var key in GlobalState) {
+        if (GlobalState.hasOwnProperty(key) && typeof GlobalState[key] == 'number') {
+            GlobalState[key] = getInt(key);
+        }
+    }
+
+    // Load shaders
+    var programObj = gl.createProgram();
+    var vs = gl.createShader(gl.VERTEX_SHADER);
+    var fs = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(vs, vertexShaderSource.replace("$(loopCount)", GlobalState.vertexLoopCount));
+    gl.compileShader(vs);
+    gl.shaderSource(fs, fragmentShaderSource.replace("$(loopCount)", GlobalState.fragmentLoopCount));
+    gl.compileShader(fs);
+    gl.attachShader(programObj, vs);
+    gl.attachShader(programObj, fs);
+    gl.bindAttribLocation(programObj, 0, "position");
+    gl.linkProgram(programObj);
+    gl.useProgram(programObj);
+    //console.log('Program link status: ' + gl.getProgramParameter(programObj, gl.LINK_STATUS));
+
+    // Load buffers
+    var attribObj = gl.createBuffer();
+    var indexObj = gl.createBuffer();
+
+    var attributes = new Float32Array(4 * 3 * GlobalState.triangles);
+    var indices = new Uint32Array(3 * GlobalState.triangles);
+
+    var xDelta = 2.0 * GlobalState.triangleSize / TEST_WIDTH;
+    var yDelta = 2.0 * GlobalState.triangleSize / TEST_HEIGHT;
+    var quarterPixelX = 1.0 / TEST_WIDTH;
+
+    var x = 0;
+    var y = 0;
+    for (var i = 0; i < GlobalState.triangles; ++i) {
+
+        // data for single triangle.
+        // offset one quarter pixel to handle a 1 pixel triangle.
+        attributes[i * 12] = -1.0 + quarterPixelX + x * xDelta;
+        attributes[i * 12 + 1] = -1.0 + y * yDelta;
+        attributes[i * 12 + 2] = 0.0;
+        attributes[i * 12 + 3] = 1.0;
+        attributes[i * 12 + 4] = -1.0 + quarterPixelX + (x + 1) * xDelta;
+        attributes[i * 12 + 5] = -1.0 + y * yDelta;
+        attributes[i * 12 + 6] = 0.0;
+        attributes[i * 12 + 7] = 1.0;
+        attributes[i * 12 + 8] = -1.0 + quarterPixelX + x * xDelta;
+        attributes[i * 12 + 9] = -1.0 + (y + 1) * yDelta;
+        attributes[i * 12 + 10] = 0.0;
+        attributes[i * 12 + 11] = 1.0;
+
+        // Calculate next starting position for triangle.
+        x += 1;
+        if (x * GlobalState.triangleSize >= TEST_WIDTH) {
+            x = 0;
+            y += 1;
+            if (y * GlobalState.triangleSize >= TEST_HEIGHT) {
+                y = 0;
+            }
+        }
+
+        // Fill in indices.
+        indices[i * 3 + 0] = i * 3 + 0;
+        indices[i * 3 + 1] = i * 3 + 1;
+        indices[i * 3 + 2] = i * 3 + 2;
+    }
+
+    // Create and set VBOs.
+    gl.bindBuffer(gl.ARRAY_BUFFER, attribObj);
+    gl.bufferData(gl.ARRAY_BUFFER, attributes, gl.STATIC_DRAW);
+    gl.vertexAttribPointer(0, 4, gl.FLOAT, gl.FALSE, 0, 0);
+    gl.enableVertexAttribArray(0);
+
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexObj);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+
+    // Disable depth test
+    gl.disable(gl.DEPTH_TEST);
+};
+
+var initTest = function() {
+    initWebGL();
+    loadParameters();
+};
+
+var renderFunc = function() {
+    clear(gl, Date.now() / 6000);
+
+    for (var i = 0; i < GlobalState.drawcallsPerFrame; ++i) {
+        if (GlobalState.usesElements) {
+            gl.drawElements(gl.TRIANGLES, GlobalState.triangles * 3, gl.UNSIGNED_INT, null);
+        } else {
+            gl.drawArrays(gl.TRIANGLES, 0, GlobalState.triangles * 3);
+        }
+    }
+};
+
+var animationRequest = null;
+var render = function() {
+    renderFunc();
+    animationRequest = requestAnimationFrame(render);
+};
+
+var animate = function() {
+    if (animationRequest === null) {
+        render();
+    }
+};
+var stopAnimation = function() {
+    if (animationRequest !== null) {
+        cancelAnimationFrame(animationRequest);
+        animationRequest = null;
+    }
+};
+
+var createControls = function(gl, id) {
+    var addButton = function(f, value) {
+        var input = document.createElement('input');
+        input.type = 'button';
+        input.onclick = f;
+        input.value = value;
+        document.body.appendChild(input);
+    };
+
+    var addInput = function(id, value) {
+        if (value === undefined) {
+            value = GlobalState[id];
+        }
+        var input = document.createElement('input');
+        input.type = 'number';
+        input.value = value;
+        input.id = id;
+        var label = document.createElement('label');
+        label.for = id;
+        label.appendChild(document.createTextNode(id));
+        document.body.appendChild(label);
+        document.body.appendChild(input);
+    };
+
+    for (var key in GlobalState) {
+        if (GlobalState.hasOwnProperty(key) && typeof GlobalState[key] == 'number') {
+            addInput(key);
+        }
+    }
+    addButton(initTest, "Apply test parameters");
+    addButton(animate, "Start animation");
+    addButton(stopAnimation, "Stop animation");
+    document.body.appendChild(document.createElement('br'));
+};
+
+</script>
+<style>
+input {
+    display: block;
+    margin: 10px 0;
+}
+</style>
+</head>
+<body onload="createControls(); initTest();">
+</body>
+</html>
+

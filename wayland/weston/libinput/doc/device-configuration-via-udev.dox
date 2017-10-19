@@ -1,0 +1,138 @@
+/**
+@page udev_config Static device configuration via udev
+
+libinput supports some static configuration through udev properties.
+These properties are read when the device is initially added
+to libinput's device list, i.e. before the @ref
+LIBINPUT_EVENT_DEVICE_ADDED event is generated.
+
+The following udev properties are supported:
+<dl>
+<dt>LIBINPUT_CALIBRATION_MATRIX</dt>
+<dd>Sets the calibration matrix, see
+libinput_device_config_calibration_get_default_matrix(). If unset,
+defaults to the identity matrix.
+
+The udev property is parsed as 6 floating point numbers separated by a
+single space each (scanf(3) format "%f %f %f %f %f %f").
+The 6 values represent the first two rows of the calibration matrix as
+described in libinput_device_config_calibration_set_matrix().
+
+Example values are:
+@code
+ ENV{LIBINPUT_CALIBRATION_MATRIX}="1 0 0 0 1 0" # default
+ ENV{LIBINPUT_CALIBRATION_MATRIX}="0 -1 1 1 0 0" # 90 degree clockwise
+ ENV{LIBINPUT_CALIBRATION_MATRIX}="-1 0 1 0 -1 1" # 180 degree clockwise
+ ENV{LIBINPUT_CALIBRATION_MATRIX}="0 1 0 -1 0 1" # 270 degree clockwise
+ ENV{LIBINPUT_CALIBRATION_MATRIX}="-1 0 1 1 0 0" # reflect along y axis
+@endcode
+</dd>
+<dt>LIBINPUT_DEVICE_GROUP</dt>
+<dd>A string identifying the @ref libinput_device_group for this device. Two
+devices with the same property value are grouped into the same device group,
+the value itself is irrelevant otherwise.
+</dd>
+<dt>ID_SEAT</dt>
+<dd>Assigns the physical seat for this device. See
+libinput_seat_get_physical_name(). Defaults to "seat0".</dd>
+<dt>ID_INPUT</dt>
+<dd>If this property is set, the device is considered an input device. Any
+device with this property missing will be ignored, see @ref
+udev_device_type.</dt>
+</dd>
+<dt>ID_INPUT_KEYBOARD, ID_INPUT_KEY, ID_INPUT_MOUSE, ID_INPUT_TOUCHPAD,
+ID_INPUT_TOUCHSCREEN, ID_INPUT_TABLET, ID_INPUT_JOYSTICK,
+ID_INPUT_ACCELEROMETER</dt>
+<dd>If any of the above is set, libinput initializes the device as the given
+type, see @ref udev_device_type. Note that for historical reasons more than
+one of these may be set at any time, libinput will select only one of these
+to determine the device type. To ensure libinput selects the correct device
+type, only set one of them.</dd>
+<dt>WL_SEAT</dt>
+<dd>Assigns the logical seat for this device. See
+libinput_seat_get_logical_name()
+context. Defaults to "default".</dd>
+<dt>MOUSE_DPI</dt>
+<dd>HW resolution and sampling frequency of a relative pointer device.
+See @ref motion_normalization for details.
+</dd>
+<dt>MOUSE_WHEEL_CLICK_ANGLE</dt>
+<dd>The angle in degrees for each click on a mouse wheel. See
+libinput_pointer_get_axis_source() for details.
+</dd>
+<dt>POINTINGSTICK_CONST_ACCEL</dt>
+<dd>A constant (linear) acceleration factor to apply to pointingstick deltas
+to normalize them.
+<dt>LIBINPUT_MODEL_*</dt>
+<dd><b>This prefix is reserved as private API, do not use.</b> See @ref
+model_specific_configuration for details.
+</dd>
+<dt>LIBINPUT_ATTR_*</dt>
+<dd><b>This prefix is reserved as private API, do not use.</b> See @ref
+model_specific_configuration for details.
+</dd>
+</dl>
+
+Below is an example udev rule to assign "seat1" to a device from vendor
+0x012a with the model ID of 0x034b.
+@code
+ACTION=="add|change", KERNEL=="event[0-9]*", ENV{ID_VENDOR_ID}=="012a", \
+ENV{ID_MODEL_ID}=="034b", ENV{ID_SEAT}="seat1"
+@endcode
+
+
+@section udev_device_type Device type assignment via udev
+
+libinput requires the <b>ID_INPUT</b> property to be set on a device,
+otherwise the device will be ignored. In addition, one of <b>
+ID_INPUT_KEYBOARD, ID_INPUT_KEY, ID_INPUT_MOUSE, ID_INPUT_TOUCHPAD,
+ID_INPUT_TOUCHSCREEN, ID_INPUT_TABLET, ID_INPUT_JOYSTICK,
+ID_INPUT_ACCELEROMETER</b> must be set on the device to determine the
+device type. The usual error handling applies within libinput and a device
+type label does not guarantee that the device is initialized by libinput.
+If a device fails to meet the requirements for a device type (e.g. a keyboard
+labelled as touchpad) the device will not be available through libinput.
+
+Only one device type should be set per device at a type, though libinput can
+handle some combinations for historical reasons.
+
+Below is an example udev rule  to remove an <b>ID_INPUT_TOUCHPAD</b> setting
+and change it into an <b>ID_INPUT_TABLET</b> setting. This rule would apply
+for a device with the vendor/model ID of 012a/034b.
+
+@code
+ACTION=="add|change", KERNEL=="event[0-9]*", ENV{ID_VENDOR_ID}=="012a", \
+ENV{ID_MODEL_ID}=="034b", ENV{ID_INPUT_TOUCHPAD}="", ENV{ID_INPUT_TABLET}="1"
+@endcode
+
+@section model_specific_configuration Model-specific configuration
+
+libinput reserves the property prefixes <b>LIBINPUT_MODEL_</b> and
+<b>LIBINPUT_ATTR_*</b> for model-specific configuration. <b>These prefixes
+are reserved as private API, do not use.</b>
+
+The effect of these properties may be to enable or disable certain
+features on a specific device or set of devices, to change configuration
+defaults or any other reason. The effects of setting these properties, the
+format of the property and the value of the property are subject to change
+at any time.
+
+@subsection model_specific_configuration_x220fw81 Lenovo x220 with touchpad firmware v8.1
+
+The property <b>LIBINPUT_MODEL_LENOVO_X220_TOUCHPAD_FW81</b> may be set by a
+user in a local hwdb file. This property designates the touchpad on a Lenovo
+x220 with a touchpad firmware version 8.1. When this firmware version is
+installed, the touchpad is imprecise. The touchpad device does not send
+continuos x/y axis position updates, a behavior also observed on its
+successor model, the Lenovo x230 which has the same firmware version. If the
+above property is set, libinput adjusts its behavior to better suit this
+particular model.
+
+The touchpad firmware version cannot be detected automatically by libinput,
+local configuration is required to set this property. Refer to the libinput
+model quirks hwdb for instructions.
+
+This property must not be used for any other purpose, no specific behavior
+is guaranteed.
+
+*/

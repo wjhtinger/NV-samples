@@ -1,0 +1,89 @@
+For tegta autosar comm protocol via ethernet
+--------------------------------------------
+
+The TACP library requires a cfg file called "tacp.cfg".
+For Linux, the cfg file is kept at path /etc/tacp/tacp.cfg.
+For QNX, the cfg file needs to be present in the same location as the client.
+User needs to check/verify/update cfg file used for following parameters
+before running the app.
+
+AURIX_IP_ADDRESS=<ip address of AURIX>
+TEGRA_A_IP_ADDRESS=<ip address of Tegra A of drive-px2-autochauffeur>
+TEGRA_B_IP_ADDRESS=<ip address of Tegra B of drive-px2-autochauffeur>
+TEGRA_IP_ADDRESS=<ip address of Tegra of drive-px2-autocruise>
+AURIX_SERVER_PORT=<server port>
+model=<interface>
+RECEIVE_TIMEOUT_S=<value>
+RECEIVE_TIMEOUT_US=<value>
+
+NOTE 1: where interface could be eth0,eth1,spi etc.
+NOTE 2: AURIX_IP_ADDRESS and <model>=<interf> is mandatory param in cfg. In
+absence of these params it will fall back to environment variables.
+NOTE 3: if TEGRA_A_IP_ADDRESS or TEGRA_B_IP_ADDRESS or both param will be
+missing from cfg then automatic ip assignment will not work on
+DPX2-AutoChauffeur board.
+
+cfg file example:
+
+AURIX_IP_ADDRESS=10.42.0.73
+TEGRA_A_IP_ADDRESS=10.42.0.28
+TEGRA_B_IP_ADDRESS=10.42.0.29
+AURIX_SERVER_PORT=5000
+drive-px2-a=eth0
+drive-px2-b=eth0
+drive-px2-autocruise=spi
+RECEIVE_TIMEOUT_S=5
+RECEIVE_TIMEOUT_US=0
+
+If you want to monitor FAN RPM, you need to change check_fan_rpm value 0 to 1
+in tacp_ping.sh.
+
+Example
+------
+# power on camera of GMSL A group as master on DPX2-AutoChauffeur
+./tacp_test_app set_cam_pwr_on a m
+
+# power off all camera group as slave on DPX2-AutoChauffeur
+./tacp_test_app set_cam_pwr_off all s
+
+# power on camera of GMSL A group on DPX2-AutoCruise
+./tacp_test_app set_cam_pwr_on a
+
+# power off all camera group on DPX2-AutoCruise
+./tacp_test_app set_cam_pwr_off all
+
+# report fan bad state
+./tacp_test_app report_fan_state b
+./tacp_test_app report_fan_state bad
+
+# get AURIX FW version
+./tacp_test_app get_fw_version
+
+# get camera power status
+./tacp_test_app get_cam_pwr_staus
+
+# send ping from Tegra
+./tacp_test_app ping
+
+# run muti-threaded cam_pwr commands
+./tacp_test_app multithread_test 100
+
+# check FAN RPM every 5sec
+ Edit tacp_ping.sh file like below.
+ check_fan_rpm=0 -> check_fan_rpm=1
+
+Example only for drive-px2-autochauffeur
+------
+# request GMSL out ownership
+./tacp_test_app request_gmsl_ownership
+
+# request FPDLink ownership
+./tacp_test_app request_fpdl_ownership
+
+# select HDMI source of connector J54 to tegra
+./tacp_test_app set_hdmi_owner t
+./tacp_test_app set_hdmi_owner tegra
+
+# select HDMI source of connector J61 to mxm
+./tacp_test_app set_hdmi_owner m
+./tacp_test_app set_hdmi_owner mxm

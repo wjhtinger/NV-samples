@@ -1,0 +1,41 @@
+{
+   srunner_run::timer_create-uninitialized-bytes
+   Memcheck:Param
+   timer_create(evp)
+   fun:timer_create@@GLIBC_2.3.3
+   fun:srunner_run
+   fun:litest_run
+   fun:main
+}
+{
+   mtdev:conditional_jumps_uninitialized_value
+   Memcheck:Cond
+   ...
+   fun:mtdev_put_event
+}
+{
+   <g_type_register_static>
+   Memcheck:Leak
+   ...
+   fun:g_type_register_static
+}
+{
+   <g_type_register_static>
+   Memcheck:Leak
+   ...
+   fun:g_type_register_fundamental
+}
+{
+   <g_type_register_static>
+   Memcheck:Leak
+   ...
+   fun:g_malloc0
+}
+{
+   libunwind:msync_uninitialized_bytes
+   Memcheck:Param
+   msync(start)
+   fun:__msync_nocancel
+   ...
+   fun:litest_backtrace
+}

@@ -1,0 +1,10 @@
+libd/libdrm/libdrm_2.4.60-2.diff.gz sources
+libd/libdrm/libdrm_2.4.60.orig.tar.gz sources
+libd/libdrm/libdrm-exynos1_2.4.62-1 binary
+libd/libdrm/libdrm-freedreno1_2.4.60-2 binary
+libd/libdrm/libdrm-omap1_2.4.60-2 binary
+libd/libdrm/libdrm-tegra0_2.4.62-1 binary
+u/udev/libudev0_175-0ubuntu9 binary
+u/udev/libudev-dev_175-0ubuntu9 binary
+u/udev/udev_175-0ubuntu9.debian.tar.gz sources
+u/udev/udev_175.orig.tar.gz sources

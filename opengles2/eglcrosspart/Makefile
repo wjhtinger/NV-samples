@@ -1,0 +1,69 @@
+
+CFLAGS   = $(NV_PLATFORM_OPT)     $(NV_PLATFORM_CFLAGS)
+CPPFLAGS = $(NV_PLATFORM_SDK_INC) $(NV_PLATFORM_CPPFLAGS)
+LDFLAGS  = $(NV_PLATFORM_SDK_LIB) $(NV_PLATFORM_LDFLAGS)
+
+include ../../../make/nvdefs.mk
+
+# By default we use the following options
+#   - Use native functions for window and operating system interaction
+#   - Use source shaders
+#   - Build shaders into the application rather than using external data files
+# Any of these can be overridden with environment variables or by
+#   modifying this file. Note that demo executables must be build with the
+#   same settings as the demo libraries they link against.
+# If you choose external shader files, you will need to copy the files
+#   (.cgbin for binary, .glsl[fv] for source) to the platform along with
+#   the executable.
+NV_USE_BINARY_SHADERS ?= 0
+NV_USE_EXTERN_SHADERS ?= 0
+
+ifeq ($(NV_USE_BINARY_SHADERS),1)
+  CPPFLAGS += -DUSE_BINARY_SHADERS
+endif
+ifeq ($(NV_USE_EXTERN_SHADERS),1)
+  CPPFLAGS += -DUSE_EXTERN_SHADERS
+endif
+
+TARGETS += $(NV_WINSYS)/eglcrosspart
+
+EGLCROSSPART_OBJS :=
+EGLCROSSPART_OBJS += $(NV_WINSYS)/demo.o
+EGLCROSSPART_OBJS += $(NV_WINSYS)/consumer.o
+EGLCROSSPART_OBJS += $(NV_WINSYS)/utils.o
+EGLCROSSPART_OBJS += $(NV_WINSYS)/producer.o
+INTERMEDIATES += $(EGLCROSSPART_OBJS)
+
+EGLCROSSPART_DEMOLIBS :=
+EGLCROSSPART_DEMOLIBS += ../nvgldemo/$(NV_WINSYS)/libnvgldemo.a
+
+EGLCROSSPART_LDLIBS :=
+EGLCROSSPART_LDLIBS += -lm
+EGLCROSSPART_LDLIBS += -lrt
+EGLCROSSPART_LDLIBS += -lpthread
+EGLCROSSPART_LDLIBS += -lEGL
+EGLCROSSPART_LDLIBS += -lGLESv2
+EGLCROSSPART_LDLIBS += ${NV_PLATFORM_WINSYS_LIBS}
+
+ifeq ($(findstring $(NV_WINSYS),egldevice screen wayland x11),)
+all:
+	echo Sample not supported for NV_WINSYS=
+else
+all: $(TARGETS)
+endif
+
+clean:
+	rm -rf $(TARGETS) $(INTERMEDIATES)
+
+.PHONY: FORCE
+FORCE:
+
+$(NV_WINSYS)/eglcrosspart: $(EGLCROSSPART_OBJS) $(EGLCROSSPART_DEMOLIBS)
+	$(LD) $(LDFLAGS) -o $@ $^ $(EGLCROSSPART_LDLIBS)
+
+define demolib-rule
+$(1): FORCE
+	$(MAKE) -C $$(subst $$(NV_WINSYS)/,,$$(dir $$@))
+endef
+$(foreach demolib,$(EGLCROSSPART_DEMOLIBS),$(eval $(call demolib-rule,$(demolib))))
+

@@ -1,0 +1,106 @@
+/*
+ * Copyright (c) 2014-2015, NVIDIA Corporation.  All Rights Reserved.
+ *
+ * BY INSTALLING THE SOFTWARE THE USER AGREES TO THE TERMS BELOW.
+ *
+ * User agrees to use the software under carefully controlled conditions
+ * and to inform all employees and contractors who have access to the software
+ * that the source code of the software is confidential and proprietary
+ * information of NVIDIA and is licensed to user as such.  User acknowledges
+ * and agrees that protection of the source code is essential and user shall
+ * retain the source code in strict confidence.  User shall restrict access to
+ * the source code of the software to those employees and contractors of user
+ * who have agreed to be bound by a confidentiality obligation which
+ * incorporates the protections and restrictions substantially set forth
+ * herein, and who have a need to access the source code in order to carry out
+ * the business purpose between NVIDIA and user.  The software provided
+ * herewith to user may only be used so long as the software is used solely
+ * with NVIDIA products and no other third party products (hardware or
+ * software).   The software must carry the NVIDIA copyright notice shown
+ * above.  User must not disclose, copy, duplicate, reproduce, modify,
+ * publicly display, create derivative works of the software other than as
+ * expressly authorized herein.  User must not under any circumstances,
+ * distribute or in any way disseminate the information contained in the
+ * source code and/or the source code itself to third parties except as
+ * expressly agreed to by NVIDIA.  In the event that user discovers any bugs
+ * in the software, such bugs must be reported to NVIDIA and any fixes may be
+ * inserted into the source code of the software by NVIDIA only.  User shall
+ * not modify the source code of the software in any way.  User shall be fully
+ * responsible for the conduct of all of its employees, contractors and
+ * representatives who may in any way violate these restrictions.
+ *
+ * NO WARRANTY
+ * THE ACCOMPANYING SOFTWARE (INCLUDING OBJECT AND SOURCE CODE) PROVIDED BY
+ * NVIDIA TO USER IS PROVIDED "AS IS."  NVIDIA DISCLAIMS ALL WARRANTIES,
+ * EXPRESS, IMPLIED OR STATUTORY, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+ * WARRANTIES OF TITLE, MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT.
+
+ * LIMITATION OF LIABILITY
+ * NVIDIA SHALL NOT BE LIABLE TO USER, USERS CUSTOMERS, OR ANY OTHER PERSON
+ * OR ENTITY CLAIMING THROUGH OR UNDER USER FOR ANY LOSS OF PROFITS, INCOME,
+ * SAVINGS, OR ANY OTHER CONSEQUENTIAL, INCIDENTAL, SPECIAL, PUNITIVE, DIRECT
+ * OR INDIRECT DAMAGES (WHETHER IN AN ACTION IN CONTRACT, TORT OR BASED ON A
+ * WARRANTY), EVEN IF NVIDIA HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH
+ * DAMAGES.  THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF THE
+ * ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.  IN NO EVENT SHALL NVIDIAS
+ * AGGREGATE LIABILITY TO USER OR ANY OTHER PERSON OR ENTITY CLAIMING THROUGH
+ * OR UNDER USER EXCEED THE AMOUNT OF MONEY ACTUALLY PAID BY USER TO NVIDIA
+ * FOR THE SOFTWARE PROVIDED HEREWITH.
+ */
+
+//------------------------------------------------------------------------------
+//! \file nvassetloader.h
+//! \brief Interface to Asset Loader
+//------------------------------------------------------------------------------
+
+#ifndef _INCLUDED_NVASSETLOADER_H_
+#define _INCLUDED_NVASSETLOADER_H_
+
+#include "nvevainterface.h"
+
+typedef void AssetLoader;
+
+// Need to clean up these structures
+typedef struct _AssetLoaderSplashScreenParam {
+    U16 width;
+    U16 height;
+} AssetLoaderSplashScreenParam;
+
+typedef struct _CameraOverlayParam {
+    U16 width;
+    U16 height;
+} CameraOverlayParam;
+
+typedef struct _CarOverlayParams {
+    S16 width;
+    S16 height;
+} CarOverlayParams;
+
+typedef struct _WelcomeAnimationParams {
+    char  fileName[256];
+    float frameRate;
+    U32   uDisplayId;
+} WelcomeAnimationParams;
+
+    //! Create instance of AssetLoader structure.
+AssetLoader* AssetLoaderInit (void);
+    //! Destroy instance.
+NvResult AssetLoaderRelease (AssetLoader *asset_loader);
+
+    //! Gets splash screen parameters.
+NvResult AssetLoaderGetSplashParam (AssetLoader *asset_loader, AssetLoaderSplashScreenParam *SSParam);
+    //! Copies SplashScreen to buffer for use by EVA.
+NvResult AssetLoaderCopySplashScreen (AssetLoader *asset_loader, void *SplashBuffer, U32 maxSplashScreenSize);
+    //! Gets overlay parameters for specified camera.
+NvResult AssetLoaderGetCameraOverlayParams (AssetLoader *asset_loader, ECamera_ID camID, CameraOverlayParam *COP);
+    //! Copies overlay image to buffer for the specified camera for use by EVA.
+NvResult AssetLoaderCopyCameraOverlay (AssetLoader *asset_loader, ECamera_ID camdID, void *CameraMask, U32 maxCamMaskSize);
+    //! Gets car image parameters.
+NvResult AssetLoaderGetCarImageParams (AssetLoader *asset_loader, CarOverlayParams *CARP);
+    //! Copies car image buffer for use by EVA.
+NvResult AssetLoaderCopyCarImage (AssetLoader *asset_loader, void *CarImage, U32 maxCarImageSize);
+    //! Gets the welcome animation parameters including file name and path.
+NvResult AssetLoaderGetWelcomeAnimationParams (AssetLoader *asset_loader, WelcomeAnimationParams *WAP);
+
+#endif /* _INCLUDED_NVASSETLOADER_H_ */
