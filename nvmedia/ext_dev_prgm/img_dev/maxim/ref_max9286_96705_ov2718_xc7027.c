@@ -11,7 +11,8 @@
 #include "ref_max9286_96705_ov2718_xc7027.h"
 #include "isc_max96705.h"
 #include "isc_max9286.h"
-#include "isc_ar0231.h"
+#include "isc_xc7027.h"
+#include "isc_ov2718.h"
 #include "log_utils.h"
 #include "error_max9286.h"
 #include "dev_property.h"
@@ -75,7 +76,7 @@ SetupConfigLink(
                                .hven = ISC_INPUT_MODE_MAX96705_HVEN_ENCODING_ENABLE,
                                .edc = ISC_INPUT_MODE_MAX96705_EDC_1_BIT_PARITY}};
     ConfigurePixelInfoMAX9286  pixelInfoMAX9286 = { .bits = { // DBL=1, CSI_DBL=1 raw12
-                               .type = ISC_DATA_TYPE_MAX9286_RAW11_RAW12,
+                               .type = ISC_DATA_TYPE_MAX9286_YUV422_8BIT,
                                .dbl = ISC_WORD_MODE_MAX9286_DOUBLE,
                                .csi_dbl = ISC_CSI_MODE_MAX9286_DOUBLE,
                                .lane_cnt = 3}};
@@ -297,9 +298,6 @@ SetupVideoLink (
     NvMediaStatus status = NVMEDIA_STATUS_OK;
     NvU32 i;
     WriteParametersParamMAX9286 paramsMAX9286;
-    NvS32 config;
-    unsigned char data[8];
-    unsigned int pclk;
 
     if(device->iscBroadcastSerializer && !configParam->slave) {
         // Check link status to set up video link
@@ -365,9 +363,6 @@ SetupVideoLink (
                 // Set address translation for the sensor to control individual sensor
                 if(configParam->sensorAddr[i] && device->iscBroadcastSerializer) {
                     WriteReadParametersParamMAX96705 paramsMAX96705;
-                    ConfigInfoAR0231 configInfo;
-                    WriteReadParametersParamAR0231 paramAR0231;
-                    paramAR0231.configInfo = &configInfo;
 
                     // Set address translation for the sensor
                     paramsMAX96705.Translator.source = configParam->sensorAddr[i];
@@ -382,17 +377,7 @@ SetupVideoLink (
                         LOG_ERR("%s: Address translation setup failed\n", __func__);
                         return status;
                     }
-
-                    //  Get fuseId for each sensor
-                    status = NvMediaISCReadParameters(device->iscSensor[i],
-                                    ISC_READ_PARAM_CMD_AR0231_FUSE_ID,
-                                    (unsigned int)(sizeof(paramAR0231.configInfo)),
-                                    &paramAR0231);
-                    if(status != NVMEDIA_STATUS_OK) {
-                        LOG_ERR("%s: Get sensor fuseId failed\n", __func__);
-                        return status;
-                    }
-                }
+               }
             }
 
             // Set address translation for the serializer to control individual serializer
@@ -451,14 +436,6 @@ SetupVideoLink (
         usleep(4000);
     }
 
-    status = GetAR0231ConfigSet(configParam->resolution,
-                                 configParam->inputFormat,
-                                 &config);
-    if(status != NVMEDIA_STATUS_OK) {
-        LOG_ERR("%s: Failed to get config set\n", __func__);
-        return status;
-    }
-
     if(device->iscBroadcastSensor) {
         // Set sensor defaults after software reset
         LOG_DBG("%s: Set AR0231 defaults\n", __func__);
@@ -468,31 +445,19 @@ SetupVideoLink (
             return status;
         }
 
-        //read sensor AR0231 PLL registers to get pclk
-        status = NvMediaISCReadRegister(device->iscBroadcastSensor,
-                                   AR0231_REG_PLL_VT_PIXDIV, 8, data);
-        if(status != NVMEDIA_STATUS_OK) {
-            LOG_ERR("%s: Failed to get sensor PCLK\n", __func__);
-            return status;
-        }
-        // pre_pll_clk_div:data[5]; pll_muliplier:data[7];
-        // vt_sys_clk_div_CLK_DIV:data[3]; vt_pix_clk_div:data[1]
-        pclk = OSC_MHZ / data[5] * data[7] / data[3] / data[1]  * 1000000;
-        LOG_DBG("%s: Get sensor pclk: %d Hz\n", __func__, pclk);
-
         // Only to be set by master Tegra when capturing with two or more Tegras
         if(!configParam->slave) {
             switch(configParam->enableExtSync) {
                 case 1:
                     LOG_DBG("%s: Eanble external synchronization", __func__);
                     paramsMAX9286.SetFsyncMode.syncMode = ISC_SET_FSYNC_MAX9286_EXTERNAL_FROM_ECU;
-                    paramsMAX9286.SetFsyncMode.k_val = (int)(pclk/device->property.frameRate + 0.5);  //pclk per frame
+                    paramsMAX9286.SetFsyncMode.k_val = 1;  //pclk per frame
                     break;
                 case 0:
                 default :
                     //set Ders fsync mode to manual and each periord has k_val pclk
                     paramsMAX9286.SetFsyncMode.syncMode = ISC_SET_FSYNC_MAX9286_FSYNC_MANUAL;
-                    paramsMAX9286.SetFsyncMode.k_val = (int)(pclk/device->property.frameRate + 0.5);  //pclk per frame
+                    paramsMAX9286.SetFsyncMode.k_val = 1;  //pclk per frame
             }
         } else {
             paramsMAX9286.SetFsyncMode.syncMode = ISC_SET_FSYNC_MAX9286_DISABLE_SYNC;
@@ -510,9 +475,9 @@ SetupVideoLink (
         }
 
         // Enables streamming
-        LOG_DBG("%s: Set sensor configuration (%u)\n", __func__, config);
+        //LOG_DBG("%s: Set sensor configuration (%u)\n", __func__, config);
         status = NvMediaISCSetDeviceConfig(device->iscBroadcastSensor,
-                                            config);
+                                            ISC_CONFIG_XC7027_SYNC);
         if(status != NVMEDIA_STATUS_OK) {
             LOG_ERR("%s: Failed to set sensor configuration\n", __func__);
             return status;
@@ -607,11 +572,9 @@ Init(
     NvU32 i, remap;
     ExtImgDevice *device = NULL;
     NvMediaISCAdvancedConfig advConfig;
-    ContextAR0231 ctxAR0231;
     NvU32 remapIdx[MAX_AGGREGATE_IMAGES] = {0};
     ContextMAX9286 ctxMAX9286;
 
-    memset(&ctxAR0231, 0, sizeof(ContextAR0231));
     memset(&ctxMAX9286, 0, sizeof(ContextMAX9286));
 
     if(!configParam)
@@ -728,19 +691,7 @@ Init(
         }
     }
 
-    ctxAR0231.oscMHz = OSC_MHZ;
-    ctxAR0231.maxGain = MAX_GAIN;
-    /* set frameRate from device property */
-    ctxAR0231.frameRate = device->property.frameRate;
-    /* set config set */
-    ctxAR0231.configSetIdx = device->property.enableExtSync;
-    status = ImgDevGetModuleConfig(&ctxAR0231.moduleConfig, configParam->moduleName);
-    if(status != NVMEDIA_STATUS_OK) {
-        LOG_ERR("%s: Failed to get camera module config file name\n", __func__);
-    }
-
     if(configParam->brdcstSensorAddr) {
-        ADV_CONFIG_INIT(advConfig, &ctxAR0231);
         // Create the image sensor device
         LOG_INFO("%s: Create broadcast sensor device on address 0x%x\n", __func__,
                          configParam->brdcstSensorAddr);
@@ -750,8 +701,8 @@ Init(
                                         0,
                                         configParam->slave ? NVMEDIA_ISC_SIMULATOR_ADDRESS :
                                                              configParam->brdcstSensorAddr,
-                                        GetAR0231Driver(),
-                                        &advConfig);
+                                        GetXC7027Driver(),
+                                        NULL);
         if(!device->iscBroadcastSensor) {
             LOG_ERR("%s: Failed to create broadcast sensor device\n", __func__);
             goto failed;
@@ -781,7 +732,6 @@ Init(
             // Create the image sensor device, j is csi_out corresponding to display order
             LOG_INFO("%s: Create image sensor device %u on address 0x%x\n", __func__, i,
                         configParam->sensorAddr[i]);
-            ADV_CONFIG_INIT(advConfig, &ctxAR0231);
             device->iscSensor[i] = NvMediaISCDeviceCreate(
                                         device->iscRoot,
                                         device->iscSerializer[i] ? device->iscSerializer[i] :
@@ -789,8 +739,8 @@ Init(
                                         remapIdx[i],
                                         configParam->slave ? NVMEDIA_ISC_SIMULATOR_ADDRESS :
                                                              configParam->sensorAddr[i],
-                                        GetAR0231Driver(),
-                                        &advConfig);
+                                        GetXC7027Driver(),
+                                        NULL);
             if(!device->iscSensor[i]) {
                 LOG_ERR("%s: Failed to create image sensor device\n", __func__);
                 goto failed;
@@ -799,48 +749,7 @@ Init(
     }
 
     if(configParam->initialized || configParam->enableSimulator) {
-        ConfigInfoAR0231 configInfo;
-        WriteReadParametersParamAR0231 paramAR0231;
-        paramAR0231.configInfo = &configInfo;
-
-        status = NvMediaISCReadParameters(device->iscBroadcastSensor,
-                        ISC_READ_PARAM_CMD_AR0231_CONFIG_INFO,
-                        sizeof(paramAR0231.configInfo),
-                        &paramAR0231);
-        if(status != NVMEDIA_STATUS_OK) {
-            LOG_ERR("%s: Failed to get config info\n", __func__);
-            goto failed;
-        }
-
-        status = GetAR0231ConfigSet(configParam->resolution,
-                                    configParam->inputFormat,
-                                    &configInfo.enumeratedDeviceConfig);
-        if(status != NVMEDIA_STATUS_OK) {
-            LOG_ERR("%s: Failed to get config set\n", __func__);
-            goto failed;
-        }
-
-        status = NvMediaISCReadParameters(device->iscBroadcastSensor,
-                        ISC_READ_PARAM_CMD_AR0231_EXP_LINE_RATE,
-                        sizeof(paramAR0231.configInfo),
-                        &paramAR0231);
-        if(status != NVMEDIA_STATUS_OK) {
-            LOG_ERR("%s: Failed to get line rate\n", __func__);
-            goto failed;
-        }
-
-        LOG_INFO("%s: Update config info for boardcastSensorDevice\n", __func__);
-
-        status = NvMediaISCWriteParameters(device->iscBroadcastSensor,
-                        ISC_WRITE_PARAM_CMD_AR0231_CONFIG_INFO,
-                        sizeof(paramAR0231.configInfo),
-                        &paramAR0231);
-        if(status != NVMEDIA_STATUS_OK) {
-            LOG_ERR("%s: Failed to set config set\n", __func__);
-            goto failed;
-        }
-
-        goto init_done;
+       goto init_done;
     }
 
     status = SetupConfigLink(configParam, device);
@@ -856,46 +765,6 @@ Init(
     }
 
 init_done:
-    // update frame id for embedded data
-    if(device->iscBroadcastSensor) {
-        // if individual sensor device handle exists, it needs to copy the config info
-        // for each sensor from braodcast device to control expose time and to get embedded data.
-        ConfigInfoAR0231 configInfo;
-        WriteReadParametersParamAR0231 paramAR0231;
-        paramAR0231.configInfo = &configInfo;
-
-        status = NvMediaISCReadParameters(device->iscBroadcastSensor,
-                        ISC_READ_PARAM_CMD_AR0231_CONFIG_INFO,
-                        sizeof(paramAR0231.configInfo),
-                        &paramAR0231);
-        if(status != NVMEDIA_STATUS_OK) {
-            LOG_ERR("%s: Failed to get config\n", __func__);
-            goto failed;
-        }
-
-        for(i = 0; i < configParam->sensorsNum; i++) {
-            if(device->iscSensor[i]) {
-                LOG_DBG("%s: Set sensor[%d] config\n", __func__, i);
-                status = NvMediaISCWriteParameters(device->iscSensor[i],
-                                ISC_WRITE_PARAM_CMD_AR0231_CONFIG_INFO,
-                                sizeof(paramAR0231.configInfo),
-                                &paramAR0231);
-                if(status != NVMEDIA_STATUS_OK) {
-                    LOG_ERR("%s: Failed to set config\n", __func__);
-                    goto failed;
-                }
-            }
-        }
-
-        LOG_DBG("%s: Reset sensor frame id\n", __func__);
-        status = NvMediaISCSetDeviceConfig(device->iscBroadcastSensor,
-                              ISC_CONFIG_AR0231_RESET_FRAME_ID);
-        if(status != NVMEDIA_STATUS_OK) {
-            LOG_ERR("%s: Failed to reset sensor frame id\n", __func__);
-            goto failed;
-        }
-    }
-
     memcpy(device->remapIdx, remapIdx, sizeof(device->remapIdx));
     device->simulator = configParam->enableSimulator;
     return device;
@@ -924,7 +793,7 @@ Start(ExtImgDevice *device)
 
         LOG_DBG("%s: Enable streaming\n", __func__);
         status = NvMediaISCSetDeviceConfig(device->iscBroadcastSensor,
-                                           ISC_CONFIG_AR0231_ENABLE_STREAMING);
+                                           ISC_CONFIG_XC7027_ENABLE_STREAMING);
         if (status != NVMEDIA_STATUS_OK) {
             LOG_ERR("%s: Failed to enable sensor streaming\n", __func__);
             return status;
@@ -980,6 +849,9 @@ RegisterCallback(
     void (*cb)(void *),
     void *context)
 {
+	 if(!device)
+        return NVMEDIA_STATUS_ERROR;
+	 
     return NvMediaISCRootDeviceRegisterCallback(device->iscRoot,
                                                 sigNum, cb, context);
 }
@@ -990,13 +862,17 @@ GetError(
     NvU32 *link,
     ExtImgDevFailureType *errorType)
 {
+	 if(!device)
+        return NVMEDIA_STATUS_ERROR;
+	 
     return _GetError_max9286(device->iscDeserializer, link, errorType);
 }
 
 static ImgProperty properties[] = {
                    /* resolution, oscMHz, fps,     pclk,  embTop, embBottom, inputFormat, pixelOrder */
-    IMG_PROPERTY_ENTRY(1920x1208, OSC_MHZ, 30, 88000000,     24,      0,       raw12,       grbg),
-    IMG_PROPERTY_ENTRY(1920x1008, OSC_MHZ, 36, 88000000,     16,      0,       raw12,       grbg),
+    //IMG_PROPERTY_ENTRY(1920x1208, OSC_MHZ, 30, 88000000,     24,      0,       raw12,       grbg),
+    //IMG_PROPERTY_ENTRY(1920x1008, OSC_MHZ, 36, 88000000,     16,      0,       raw12,       grbg),
+    IMG_PROPERTY_ENTRY(1920x1080,     24,  30, 48006000,      0,         0,        422p,        yuv),
 };
 
 static ImgDevDriver device = {

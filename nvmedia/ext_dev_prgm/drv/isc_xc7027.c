@@ -32,13 +32,22 @@ unsigned char xc7027_data[] = {
 };
 
 static NvMediaStatus
+ReadRegister(
+    NvMediaISCDriverHandle *handle,
+    NvMediaISCTransactionHandle *transaction,
+    unsigned int registerNum,
+    unsigned int dataLength,
+    unsigned char *dataBuff);
+
+
+static NvMediaStatus
 DriverCreate(
     NvMediaISCDriverHandle **handle,
     NvMediaISCSupportFunctions *supportFunctions,
     void *clientContext)
 {
     _DriverHandle *driverHandle;
-
+	LOG_ERR("%s: ddddddddddddddddddddddd 000\n", __func__);
     if(!handle || !supportFunctions)
         return NVMEDIA_STATUS_BAD_PARAMETER;
 
@@ -121,8 +130,15 @@ SetDeviceConfig(
         NvMediaISCTransactionHandle *transaction,
         unsigned int enumeratedDeviceConfig)
 {
+	unsigned char buf[2];
+	LOG_ERR("%s: ddddddddddddddddddddddd 000[%d]\n", __func__, enumeratedDeviceConfig);
     switch(enumeratedDeviceConfig) {
-        case ISC_CONFIG_EXAMPLE:
+        case ISC_CONFIG_XC7027_ENABLE_STREAMING:				
+			ReadRegister(handle, transaction, 0xfffb, 1, &buf[0]);		
+			ReadRegister(handle, transaction, 0xfffc, 1, &buf[1]);
+			LOG_ERR("%s: ddddddddddddddddddddddd 222[%x][%x]\n", __func__, buf[0], buf[1]);
+	
+			return NVMEDIA_STATUS_OK;
             return WriteArray(
                 handle,
                 transaction,
@@ -254,11 +270,11 @@ CheckPresence(
     NvMediaISCSupportFunctions *funcs;
     unsigned char cmd[1];
     unsigned char data[8];
-    NvMediaStatus status;
+    //NvMediaStatus status;
 
     if(!handle)
         return NVMEDIA_STATUS_BAD_PARAMETER;
-
+	/*
     funcs = ((_DriverHandle *)handle)->funcs;
 
     cmd[0] = 0x01;
@@ -275,7 +291,7 @@ CheckPresence(
 
     if(!(data[0] & (1 << 0)))
         return NVMEDIA_STATUS_ERROR;
-
+	*/
     return NVMEDIA_STATUS_OK;
 }
 
@@ -335,7 +351,9 @@ GetSensorProperties(
     NvMediaISCSensorProperties *properties)
 {
     memset(properties, 0, sizeof(*properties));
-    properties->frameRate = 60.0f;
+    properties->frameRate = 30.0f;
+	
+	
     return NVMEDIA_STATUS_OK;
 }
 

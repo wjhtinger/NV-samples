@@ -9,10 +9,11 @@
 #define _ISC_OV2718_H_
 
 #include "nvmedia_isc.h"
+#include "log_utils.h"
 
 typedef enum {
-    ISC_CONFIG_EXAMPLE         = 0,
-} ConfigSetsExample;
+    ISC_CONFIG_OV2718         = 0,
+} ConfigSetsOV2718;
 
 NvMediaISCDeviceDriver *GetOV2718Driver(void);
 

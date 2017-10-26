@@ -16,6 +16,7 @@
 #include "m_max9288_96705_ar0140.h"
 #include "ref_max9286_96705_ar0231_rccb.h"
 #include "c_max9286_9271_ov10640lsoff.h"
+#include "ref_max9286_96705_ov2718_xc7027.h"
 #include "tpg.h"
 
 ImgDevDriver *ImgGetDevice(char *moduleName)

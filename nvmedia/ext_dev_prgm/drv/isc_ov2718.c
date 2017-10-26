@@ -122,7 +122,7 @@ SetDeviceConfig(
         unsigned int enumeratedDeviceConfig)
 {
     switch(enumeratedDeviceConfig) {
-        case ISC_CONFIG_EXAMPLE:
+        case ISC_CONFIG_OV2718:
             return WriteArray(
                 handle,
                 transaction,
