@@ -456,7 +456,7 @@ SetupVideoLink (
                 case 0:
                 default :
                     //set Ders fsync mode to manual and each periord has k_val pclk
-                    paramsMAX9286.SetFsyncMode.syncMode = ISC_SET_FSYNC_MAX9286_FSYNC_MANUAL;
+                    paramsMAX9286.SetFsyncMode.syncMode = ISC_SET_FSYNC_MAX9286_FSYNC_SEMI_AUTO;
                     paramsMAX9286.SetFsyncMode.k_val = 1;  //pclk per frame
             }
         } else {
@@ -574,7 +574,7 @@ Init(
     NvMediaISCAdvancedConfig advConfig;
     NvU32 remapIdx[MAX_AGGREGATE_IMAGES] = {0};
     ContextMAX9286 ctxMAX9286;
-
+	SetLogLevel(LEVEL_DBG);
     memset(&ctxMAX9286, 0, sizeof(ContextMAX9286));
 
     if(!configParam)
@@ -709,6 +709,21 @@ Init(
         }
     }
 
+	//ISP+sensor模组
+	device->iscBroadcastSensor2 = NvMediaISCDeviceCreate(
+									device->iscRoot,
+									device->iscBroadcastSerializer,
+									0,
+									configParam->slave ? NVMEDIA_ISC_SIMULATOR_ADDRESS :
+														 0x36,
+									GetOV2718Driver(),
+									NULL);														 
+	if(!device->iscBroadcastSensor2) {
+		LOG_ERR("%s: Failed to create broadcast sensor2 device\n", __func__);
+		goto failed;
+	}
+	
+
     for(i = 0; i < configParam->sensorsNum; i++) {
         if(configParam->serAddr[i]) {
             // Create the serializer device
@@ -746,6 +761,23 @@ Init(
                 goto failed;
             }
         }
+
+		//ISP+sensor模组
+		/*
+        device->iscSensor2[i] = NvMediaISCDeviceCreate(
+                                    device->iscRoot,
+                                    device->iscSerializer[i] ? device->iscSerializer[i] :
+                                                               device->iscBroadcastSerializer,
+                                    remapIdx[i],
+                                    configParam->slave ? NVMEDIA_ISC_SIMULATOR_ADDRESS :
+                                                         0x10,
+                                    GetOV2718Driver(),
+                                    NULL);
+        if(!device->iscSensor[i]) {
+            LOG_ERR("%s: Failed to create image sensor2 device\n", __func__);
+            goto failed;
+        }
+        */
     }
 
     if(configParam->initialized || configParam->enableSimulator) {
@@ -799,6 +831,23 @@ Start(ExtImgDevice *device)
             return status;
         }
     }
+
+	usleep(50000);
+
+	if(device->iscBroadcastSensor2){
+        if(device->property.enableExtSync) {
+            // Wait for PLL locked
+            usleep(50000);
+        }
+
+        LOG_DBG("%s: Enable streaming2\n", __func__);
+        status = NvMediaISCSetDeviceConfig(device->iscBroadcastSensor2,
+                                           ISC_CONFIG_OV2718_ENABLE_STREAMING);
+        if (status != NVMEDIA_STATUS_OK) {
+            LOG_ERR("%s: Failed to enable sensor streaming2\n", __func__);
+            return status;
+        }
+	}
 
     if(device->iscBroadcastSerializer) {
         // Enable each serial link
@@ -872,7 +921,7 @@ static ImgProperty properties[] = {
                    /* resolution, oscMHz, fps,     pclk,  embTop, embBottom, inputFormat, pixelOrder */
     //IMG_PROPERTY_ENTRY(1920x1208, OSC_MHZ, 30, 88000000,     24,      0,       raw12,       grbg),
     //IMG_PROPERTY_ENTRY(1920x1008, OSC_MHZ, 36, 88000000,     16,      0,       raw12,       grbg),
-    IMG_PROPERTY_ENTRY(1920x1080,     24,  30, 48006000,      0,         0,        422p,        yuv),
+    IMG_PROPERTY_ENTRY(1920x1080,     26,  30, 48006000,      0,         0,        422p,        yuv),
 };
 
 static ImgDevDriver device = {

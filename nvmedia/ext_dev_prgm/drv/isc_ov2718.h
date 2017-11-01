@@ -13,6 +13,8 @@
 
 typedef enum {
     ISC_CONFIG_OV2718         = 0,
+	ISC_CONFIG_OV2718_ENABLE_STREAMING,
+	
 } ConfigSetsOV2718;
 
 NvMediaISCDeviceDriver *GetOV2718Driver(void);

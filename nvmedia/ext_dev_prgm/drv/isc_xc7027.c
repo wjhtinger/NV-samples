@@ -13,13 +13,15 @@
 
 #include "nvmedia_isc.h"
 #include "isc_xc7027.h"
+#include "ov2718_xc7027.h"
+
 
 typedef struct {
     NvMediaISCSupportFunctions *funcs;
 } _DriverHandle;
 
 #define REGISTER_ADDRESS_BYTES  2
-#define REG_WRITE_BUFFER        32
+#define REG_WRITE_BUFFER        256
 #define MIN(a,b)            (((a) < (b)) ? (a) : (b))
 
 #define GET_SIZE(x)         sizeof(x)
@@ -47,7 +49,7 @@ DriverCreate(
     void *clientContext)
 {
     _DriverHandle *driverHandle;
-	LOG_ERR("%s: ddddddddddddddddddddddd 000\n", __func__);
+	LOG_DBG("%s: ddddddddddddddddddddddd 000\n", __func__);
     if(!handle || !supportFunctions)
         return NVMEDIA_STATUS_BAD_PARAMETER;
 
@@ -64,7 +66,7 @@ DriverCreate(
 static NvMediaStatus
 DriverDestroy(
     NvMediaISCDriverHandle *handle)
-{
+{	LOG_DBG("%s: ddddddddddddddddddddddd 000\n", __func__);
     if(!handle)
         return NVMEDIA_STATUS_BAD_PARAMETER;
 
@@ -120,7 +122,7 @@ static NvMediaStatus
 SetDefaults(
     NvMediaISCDriverHandle *handle,
     NvMediaISCTransactionHandle *transaction)
-{
+{	LOG_DBG("%s: ddddddddddddddddddddddd 000\n", __func__);
     return NVMEDIA_STATUS_OK;
 }
 
@@ -129,21 +131,27 @@ SetDeviceConfig(
         NvMediaISCDriverHandle *handle,
         NvMediaISCTransactionHandle *transaction,
         unsigned int enumeratedDeviceConfig)
-{
-	unsigned char buf[2];
+{	int i;
+	unsigned char buf[2] = {0, 0};
 	LOG_ERR("%s: ddddddddddddddddddddddd 000[%d]\n", __func__, enumeratedDeviceConfig);
     switch(enumeratedDeviceConfig) {
-        case ISC_CONFIG_XC7027_ENABLE_STREAMING:				
-			ReadRegister(handle, transaction, 0xfffb, 1, &buf[0]);		
-			ReadRegister(handle, transaction, 0xfffc, 1, &buf[1]);
-			LOG_ERR("%s: ddddddddddddddddddddddd 222[%x][%x]\n", __func__, buf[0], buf[1]);
-	
+		case ISC_CONFIG_XC7027_SYNC:
 			return NVMEDIA_STATUS_OK;
-            return WriteArray(
-                handle,
-                transaction,
-                GET_SIZE(xc7027_data),
-                xc7027_data);
+			break;
+	
+        case ISC_CONFIG_XC7027_ENABLE_STREAMING:				
+			/*
+			for(i = 0;i < 100; i++)
+			{
+				ReadRegister(handle, transaction, 0xfffb, 1, &buf[0]);		//0x3000
+				ReadRegister(handle, transaction, 0x300a, 1, &buf[1]);      //0x31fe
+				LOG_ERR("%s: ddddddddddddddddddddddd 222[%x][%x]\n", __func__, buf[0], buf[1]);
+				usleep(1000 * 200);
+			}
+			*/
+			SetI2cFun(((_DriverHandle *)handle)->funcs, transaction);
+			XC7027MIPIOpen();
+			return NVMEDIA_STATUS_OK;
         default:
              break;
     }
@@ -158,7 +166,7 @@ WriteParameters(
         unsigned int parameterType,
         unsigned int parameterSize,
         void *parameter)
-{
+{	LOG_DBG("%s: ddddddddddddddddddddddd 000\n", __func__);
      return NVMEDIA_STATUS_OK;
 }
 
@@ -169,7 +177,7 @@ ReadParameters(
         unsigned int parameterType,
         unsigned int parameterSize,
         void *parameter)
-{
+{	LOG_DBG("%s: ddddddddddddddddddddddd 000\n", __func__);
     return NVMEDIA_STATUS_OK;
 }
 
@@ -180,25 +188,31 @@ ReadRegister(
     unsigned int registerNum,
     unsigned int dataLength,
     unsigned char *dataBuff)
-{
-    NvMediaISCSupportFunctions *funcs;
-    unsigned char registerData[REGISTER_ADDRESS_BYTES];
-    NvMediaStatus status;
+{	LOG_DBG("%s: ddddddddddddddddddddddd 000\n", __func__);
+	const NvMediaISCSupportFunctions *funcs;
+	unsigned char registerData[REGISTER_ADDRESS_BYTES];
+	NvMediaStatus status;
+	
+	if((handle == NULL) || (transaction == NULL) || (dataBuff == NULL)) {
+		return NVMEDIA_STATUS_BAD_PARAMETER;
+	}
+	
+	funcs = ((_DriverHandle *)handle)->funcs;
+	
+	registerData[0] = registerNum >> 8;
+	registerData[1] = (registerNum & (unsigned int)0xFF);
+	status = funcs->Read(
+		transaction,
+		REGISTER_ADDRESS_BYTES, // regLength
+		registerData,	   // regData
+		dataLength, 	   // dataLength
+		dataBuff);		   // data
+	
+	if(status != NVMEDIA_STATUS_OK) {
+		LOG_ERR("%s: sensor read failed: 0x%x, length %d\n", __func__, registerNum, dataLength);
+	}
+	return status;
 
-    if(!handle || !dataBuff)
-        return NVMEDIA_STATUS_BAD_PARAMETER;
-
-    funcs = ((_DriverHandle *)handle)->funcs;
-    registerData[0] = registerNum & 0xFF;
-
-    status = funcs->Read(
-        transaction,    // transaction
-        REGISTER_ADDRESS_BYTES, // regLength
-        registerData,   // regData
-        dataLength,     // dataLength
-        dataBuff);      // data
-
-    return status;
 }
 
 static NvMediaStatus
@@ -208,28 +222,35 @@ WriteRegister(
     unsigned int registerNum,
     unsigned int dataLength,
     unsigned char *dataBuff)
-{
-    NvMediaISCSupportFunctions *funcs;
-    unsigned char *data;
+{	LOG_DBG("%s: ddddddddddddddddddddddd 000\n", __func__);
+    const NvMediaISCSupportFunctions *funcs;
+    unsigned char data[REGISTER_ADDRESS_BYTES + REG_WRITE_BUFFER];
     NvMediaStatus status;
 
-    if(!handle || !dataBuff)
+    if((handle == NULL) || (transaction  == NULL) || (dataBuff == NULL)) {
         return NVMEDIA_STATUS_BAD_PARAMETER;
+    }
+
+	if(dataLength > REG_WRITE_BUFFER){
+		LOG_ERR("$s: dataLength two big[%d] \n", __func__, dataLength);
+		return NVMEDIA_STATUS_BAD_PARAMETER;
+	}
 
     funcs = ((_DriverHandle *)handle)->funcs;
-    data = (unsigned char*)malloc(REGISTER_ADDRESS_BYTES + dataLength);
-    if(!data)
-        return NVMEDIA_STATUS_OUT_OF_MEMORY;
 
-    data[0] = registerNum & 0xFF;
-    memcpy(&data[1], dataBuff, dataLength);
+    data[0] = registerNum >> 8;
+    data[1] = registerNum & (unsigned int)0xFF;
+    (void)memcpy(&data[2], dataBuff, dataLength);
 
     status = funcs->Write(
-        transaction,                         // transaction
-        dataLength + REGISTER_ADDRESS_BYTES, // dataLength
-        data);                               // data
+        transaction,
+        dataLength + (unsigned int)REGISTER_ADDRESS_BYTES,    // dataLength
+        data);                             // data
 
-    free(data);
+    if(status != NVMEDIA_STATUS_OK) {
+        LOG_ERR("%s: sensor write failed: 0x%x, length %d\n", __func__, registerNum, dataLength);
+    }
+
 
     return status;
 }
@@ -239,7 +260,7 @@ GetTemperature(
     NvMediaISCDriverHandle *handle,
     NvMediaISCTransactionHandle *transaction,
     float *temperature)
-{
+{	LOG_DBG("%s: ddddddddddddddddddddddd 000\n", __func__);
     NvMediaISCSupportFunctions *funcs;
     unsigned char cmd[1];
     unsigned char data[8];
@@ -266,7 +287,7 @@ static NvMediaStatus
 CheckPresence(
     NvMediaISCDriverHandle *handle,
     NvMediaISCTransactionHandle *transaction)
-{
+{	LOG_DBG("%s: ddddddddddddddddddddddd 000\n", __func__);
     NvMediaISCSupportFunctions *funcs;
     unsigned char cmd[1];
     unsigned char data[8];
@@ -299,7 +320,7 @@ static NvMediaStatus
 DumpRegisters(
     NvMediaISCDriverHandle *handle,
     NvMediaISCTransactionHandle *transaction)
-{
+{	LOG_DBG("%s: ddddddddddddddddddddddd 000\n", __func__);
     return NVMEDIA_STATUS_NOT_SUPPORTED;
 }
 
@@ -308,7 +329,7 @@ SetExposure(
     NvMediaISCDriverHandle *handle,
     NvMediaISCTransactionHandle *transaction,
     NvMediaISCExposureControl *exposureControl)
-{
+{	LOG_DBG("%s: ddddddddddddddddddddddd 000\n", __func__);
      return NVMEDIA_STATUS_OK;
 }
 
@@ -317,7 +338,7 @@ SetWBGain(
     NvMediaISCDriverHandle *handle,
     NvMediaISCTransactionHandle *transaction,
     NvMediaISCWBGainControl *wbControl)
-{
+{	LOG_DBG("%s: ddddddddddddddddddddddd 000\n", __func__);
     return NVMEDIA_STATUS_OK;
 }
 
@@ -329,7 +350,7 @@ ParseEmbeddedData(
     unsigned int *lineLength,
     unsigned char *lineData[],
     NvMediaISCEmbeddedData *parsedInformation)
-{
+{	LOG_DBG("%s: ddddddddddddddddddddddd 000\n", __func__);
     return NVMEDIA_STATUS_OK;
 }
 
@@ -341,7 +362,7 @@ GetSensorFrameId(
     unsigned int *lineLength,
     unsigned char *lineData[],
     unsigned int *sensorFrameId)
-{
+{	LOG_DBG("%s: ddddddddddddddddddddddd 000\n", __func__);
      return NVMEDIA_STATUS_OK;
 }
 
@@ -349,7 +370,7 @@ static NvMediaStatus
 GetSensorProperties(
     NvMediaISCDriverHandle *handle,
     NvMediaISCSensorProperties *properties)
-{
+{	LOG_DBG("%s: ddddddddddddddddddddddd 000\n", __func__);
     memset(properties, 0, sizeof(*properties));
     properties->frameRate = 30.0f;
 	
@@ -363,7 +384,7 @@ GetSensorAttr(
     NvMediaISCSensorAttrType type,
     unsigned int size,
     void *attribute)
-{
+{	LOG_DBG("%s: ddddddddddddddddddddddd 000\n", __func__);
     if(!handle || !attribute) {
         return NVMEDIA_STATUS_BAD_PARAMETER;
     }
@@ -373,7 +394,7 @@ GetSensorAttr(
             if (size != sizeof(float)) {
                 return NVMEDIA_STATUS_BAD_PARAMETER;
             }
-            *((float *) attribute) = 60.0f;
+            *((float *) attribute) = 30.0f;
             return NVMEDIA_STATUS_OK;
         default:
             return NVMEDIA_STATUS_NOT_SUPPORTED;

@@ -32,6 +32,15 @@ unsigned char ov2718_data[] = {
 };
 
 static NvMediaStatus
+ReadRegister(
+    NvMediaISCDriverHandle *handle,
+    NvMediaISCTransactionHandle *transaction,
+    unsigned int registerNum,
+    unsigned int dataLength,
+    unsigned char *dataBuff);
+
+
+static NvMediaStatus
 DriverCreate(
     NvMediaISCDriverHandle **handle,
     NvMediaISCSupportFunctions *supportFunctions,
@@ -121,13 +130,25 @@ SetDeviceConfig(
         NvMediaISCTransactionHandle *transaction,
         unsigned int enumeratedDeviceConfig)
 {
+	unsigned char buf[2] = {0, 0};
     switch(enumeratedDeviceConfig) {
         case ISC_CONFIG_OV2718:
-            return WriteArray(
-                handle,
-                transaction,
-                GET_SIZE(ov2718_data),
-                ov2718_data);
+			return NVMEDIA_STATUS_OK;
+			break;
+		
+		case ISC_CONFIG_OV2718_ENABLE_STREAMING:
+			SetI2cFunOv(((_DriverHandle *)handle)->funcs, transaction);
+			//XC7027MIPIOpen();
+			OV2718MIPIOpen();
+			/*
+			ReadRegister(handle, transaction, 0x300a, 1, &buf[0]);		//0x3000
+			ReadRegister(handle, transaction, 0x300b, 1, &buf[1]);      //0x31fe
+			LOG_ERR("%s: oooooooooooooooooo [%x][%x]\n", __func__, buf[0], buf[1]);
+			//usleep(1000 * 200);
+			*/
+			return NVMEDIA_STATUS_OK;
+			break;
+		
         default:
              break;
     }
@@ -165,24 +186,29 @@ ReadRegister(
     unsigned int dataLength,
     unsigned char *dataBuff)
 {
-    NvMediaISCSupportFunctions *funcs;
-    unsigned char registerData[REGISTER_ADDRESS_BYTES];
-    NvMediaStatus status;
-
-    if(!handle || !dataBuff)
-        return NVMEDIA_STATUS_BAD_PARAMETER;
-
-    funcs = ((_DriverHandle *)handle)->funcs;
-    registerData[0] = registerNum & 0xFF;
-
-    status = funcs->Read(
-        transaction,    // transaction
-        REGISTER_ADDRESS_BYTES, // regLength
-        registerData,   // regData
-        dataLength,     // dataLength
-        dataBuff);      // data
-
-    return status;
+	const NvMediaISCSupportFunctions *funcs;
+	unsigned char registerData[REGISTER_ADDRESS_BYTES];
+	NvMediaStatus status;
+	
+	if((handle == NULL) || (transaction == NULL) || (dataBuff == NULL)) {
+		return NVMEDIA_STATUS_BAD_PARAMETER;
+	}
+	
+	funcs = ((_DriverHandle *)handle)->funcs;
+	
+	registerData[0] = registerNum >> 8;
+	registerData[1] = (registerNum & (unsigned int)0xFF);
+	status = funcs->Read(
+		transaction,
+		REGISTER_ADDRESS_BYTES, // regLength
+		registerData,	   // regData
+		dataLength, 	   // dataLength
+		dataBuff);		   // data
+	
+	if(status != NVMEDIA_STATUS_OK) {
+		LOG_ERR("%s: sensor read failed: 0x%x, length %d\n", __func__, registerNum, dataLength);
+	}
+	return status;
 }
 
 static NvMediaStatus
@@ -193,27 +219,33 @@ WriteRegister(
     unsigned int dataLength,
     unsigned char *dataBuff)
 {
-    NvMediaISCSupportFunctions *funcs;
-    unsigned char *data;
-    NvMediaStatus status;
+	const NvMediaISCSupportFunctions *funcs;
+	unsigned char data[REGISTER_ADDRESS_BYTES + REG_WRITE_BUFFER];
+	NvMediaStatus status;
 
-    if(!handle || !dataBuff)
-        return NVMEDIA_STATUS_BAD_PARAMETER;
+	if((handle == NULL) || (transaction  == NULL) || (dataBuff == NULL)) {
+		return NVMEDIA_STATUS_BAD_PARAMETER;
+	}
 
-    funcs = ((_DriverHandle *)handle)->funcs;
-    data = (unsigned char*)malloc(REGISTER_ADDRESS_BYTES + dataLength);
-    if(!data)
-        return NVMEDIA_STATUS_OUT_OF_MEMORY;
+	if(dataLength > REG_WRITE_BUFFER){
+		LOG_ERR("$s: dataLength two big[%d] \n", __func__, dataLength);
+		return NVMEDIA_STATUS_BAD_PARAMETER;
+	}
 
-    data[0] = registerNum & 0xFF;
-    memcpy(&data[1], dataBuff, dataLength);
+	funcs = ((_DriverHandle *)handle)->funcs;
 
-    status = funcs->Write(
-        transaction,                         // transaction
-        dataLength + REGISTER_ADDRESS_BYTES, // dataLength
-        data);                               // data
+	data[0] = registerNum >> 8;
+	data[1] = registerNum & (unsigned int)0xFF;
+	(void)memcpy(&data[2], dataBuff, dataLength);
 
-    free(data);
+	status = funcs->Write(
+		transaction,
+		dataLength + (unsigned int)REGISTER_ADDRESS_BYTES,	  // dataLength
+		data);							   // data
+
+	if(status != NVMEDIA_STATUS_OK) {
+		LOG_ERR("%s: sensor write failed: 0x%x, length %d\n", __func__, registerNum, dataLength);
+	}
 
     return status;
 }
@@ -335,7 +367,7 @@ GetSensorProperties(
     NvMediaISCSensorProperties *properties)
 {
     memset(properties, 0, sizeof(*properties));
-    properties->frameRate = 60.0f;
+    properties->frameRate = 30.0f;
     return NVMEDIA_STATUS_OK;
 }
 
@@ -355,7 +387,7 @@ GetSensorAttr(
             if (size != sizeof(float)) {
                 return NVMEDIA_STATUS_BAD_PARAMETER;
             }
-            *((float *) attribute) = 60.0f;
+            *((float *) attribute) = 30.0f;
             return NVMEDIA_STATUS_OK;
         default:
             return NVMEDIA_STATUS_NOT_SUPPORTED;

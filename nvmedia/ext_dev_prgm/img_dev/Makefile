@@ -36,6 +36,7 @@ OBJS   += maxim/d_max9286_9271_mt9v024.o
 OBJS   += maxim/ref_max9286_96705_ar0231.o
 OBJS   += maxim/ref_max9286_96705_ar0231_rccb.o
 OBJS   += maxim/ref_max9286_96705_ov2718_xc7027.o
+OBJS   += maxim/ov2718_xc7027.o
 OBJS   += maxim/ref_max9288_96705_ov10635.o
 OBJS   += maxim/m_max9288_96705_ar0140.o
 OBJS   += tpg/tpg.o
