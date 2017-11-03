@@ -140,12 +140,6 @@ SetDeviceConfig(
 			SetI2cFunOv(((_DriverHandle *)handle)->funcs, transaction);
 			//XC7027MIPIOpen();
 			OV2718MIPIOpen();
-			/*
-			ReadRegister(handle, transaction, 0x300a, 1, &buf[0]);		//0x3000
-			ReadRegister(handle, transaction, 0x300b, 1, &buf[1]);      //0x31fe
-			LOG_ERR("%s: oooooooooooooooooo [%x][%x]\n", __func__, buf[0], buf[1]);
-			//usleep(1000 * 200);
-			*/
 			return NVMEDIA_STATUS_OK;
 			break;
 		

@@ -13,7 +13,7 @@
 
 #include "nvmedia_isc.h"
 #include "isc_xc7027.h"
-#include "ov2718_xc7027.h"
+#include "ov2718_xc7027_2.h"
 
 
 typedef struct {
@@ -131,8 +131,7 @@ SetDeviceConfig(
         NvMediaISCDriverHandle *handle,
         NvMediaISCTransactionHandle *transaction,
         unsigned int enumeratedDeviceConfig)
-{	int i;
-	unsigned char buf[2] = {0, 0};
+{	
 	LOG_ERR("%s: ddddddddddddddddddddddd 000[%d]\n", __func__, enumeratedDeviceConfig);
     switch(enumeratedDeviceConfig) {
 		case ISC_CONFIG_XC7027_SYNC:
@@ -140,18 +139,22 @@ SetDeviceConfig(
 			break;
 	
         case ISC_CONFIG_XC7027_ENABLE_STREAMING:				
-			/*
-			for(i = 0;i < 100; i++)
-			{
-				ReadRegister(handle, transaction, 0xfffb, 1, &buf[0]);		//0x3000
-				ReadRegister(handle, transaction, 0x300a, 1, &buf[1]);      //0x31fe
-				LOG_ERR("%s: ddddddddddddddddddddddd 222[%x][%x]\n", __func__, buf[0], buf[1]);
-				usleep(1000 * 200);
-			}
-			*/
 			SetI2cFun(((_DriverHandle *)handle)->funcs, transaction);
 			XC7027MIPIOpen();
 			return NVMEDIA_STATUS_OK;
+			
+		case ISC_CONFIG_XC7027_I2C_BYPASS_ON:		
+			SetI2cFun(((_DriverHandle *)handle)->funcs, transaction);
+			XC7027_i2c_bypass_on();	
+			return NVMEDIA_STATUS_OK;
+			break;
+
+		case ISC_CONFIG_XC7027_I2C_BYPASS_OFF:		
+			SetI2cFun(((_DriverHandle *)handle)->funcs, transaction);
+			XC7027_i2c_bypass_off(); 
+			return NVMEDIA_STATUS_OK;
+			break;
+			
         default:
              break;
     }
@@ -288,9 +291,9 @@ CheckPresence(
     NvMediaISCDriverHandle *handle,
     NvMediaISCTransactionHandle *transaction)
 {	LOG_DBG("%s: ddddddddddddddddddddddd 000\n", __func__);
-    NvMediaISCSupportFunctions *funcs;
-    unsigned char cmd[1];
-    unsigned char data[8];
+    //NvMediaISCSupportFunctions *funcs;
+    //unsigned char cmd[1];
+    //unsigned char data[8];
     //NvMediaStatus status;
 
     if(!handle)

@@ -832,6 +832,13 @@ Start(ExtImgDevice *device)
         }
     }
 
+	status = NvMediaISCSetDeviceConfig(device->iscBroadcastSensor,
+									   ISC_CONFIG_XC7027_I2C_BYPASS_ON);
+	if (status != NVMEDIA_STATUS_OK) {
+		LOG_ERR("%s: Failed to enable ISC_CONFIG_XC7027_I2C_BYPASS_ON\n", __func__);
+		return status;
+	}
+
 	usleep(50000);
 
 	if(device->iscBroadcastSensor2){
@@ -847,6 +854,15 @@ Start(ExtImgDevice *device)
             LOG_ERR("%s: Failed to enable sensor streaming2\n", __func__);
             return status;
         }
+	}
+
+	usleep(50000);
+
+	status = NvMediaISCSetDeviceConfig(device->iscBroadcastSensor,
+									   ISC_CONFIG_XC7027_I2C_BYPASS_OFF);
+	if (status != NVMEDIA_STATUS_OK) {
+		LOG_ERR("%s: Failed to enable ISC_CONFIG_XC7027_I2C_BYPASS_OFF\n", __func__);
+		return status;
 	}
 
     if(device->iscBroadcastSerializer) {
@@ -921,7 +937,7 @@ static ImgProperty properties[] = {
                    /* resolution, oscMHz, fps,     pclk,  embTop, embBottom, inputFormat, pixelOrder */
     //IMG_PROPERTY_ENTRY(1920x1208, OSC_MHZ, 30, 88000000,     24,      0,       raw12,       grbg),
     //IMG_PROPERTY_ENTRY(1920x1008, OSC_MHZ, 36, 88000000,     16,      0,       raw12,       grbg),
-    IMG_PROPERTY_ENTRY(1920x1080,     26,  30, 48006000,      0,         0,        422p,        yuv),
+    IMG_PROPERTY_ENTRY(1920x1080,     26,  22, 88000000,      0,         0,        422p,        yuv),
 };
 
 static ImgDevDriver device = {
