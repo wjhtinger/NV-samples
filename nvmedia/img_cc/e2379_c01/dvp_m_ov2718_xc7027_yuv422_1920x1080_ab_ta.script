@@ -1,0 +1,167 @@
+#
+#  Copyright (c) 2016-2017, NVIDIA CORPORATION.  All rights reserved.
+#
+#  NVIDIA Corporation and its licensors retain all intellectual property
+#  and proprietary rights in and to this software and related documentation
+#  and any modifications thereto.  Any use, reproduction, disclosure or
+#  distribution of this software and related documentation without an express
+#  license agreement from NVIDIA Corporation is strictly prohibited.
+#
+# Capture Config Parameters
+; Interface: csi-ab
+; Input Format: 422p
+; Resolution: 1920x1080
+; CSI Lanes: 4
+; I2C Device: 7
+; Sensor Address: 0x36
+; Max9286 Address: 0x90
+
+90 3f 4f
+; Delay 2ms
+90 3b 1e
+90 0a ff
+90 1c 04 # Set default value to hibw
+; Delay 2ms
+80 04 43
+; Delay 5ms
+80 08 01
+; Delay 2ms
+90 3b 19
+; Delay 2ms
+90 15 03
+90 12 f3
+90 01 21
+90 00 ef
+80 07 84
+; Delay 10ms
+90 34 36
+90 19 a3
+; Delay 10ms
+36 fffd 80 
+36 fffe 50 
+36 001c ff
+36 001d ff 
+36 001e ff 
+36 001f ff     
+36 0018 00 
+36 0019 00 
+36 001a 00 
+36 001b 00 
+36 0030 24 
+36 0031 f4 
+36 0032 73 
+36 0033 70 
+36 0020 01 
+36 0021 0e 
+36 0022 01 
+36 0023 c7 
+36 0024 06 
+36 0025 05 
+36 0026 01 
+36 0027 06 
+36 0028 06 
+36 0029 00 
+36 002a 01 
+36 002b 06 
+36 002c 05 
+36 002d 00 
+36 002e 01 
+36 00bc 19 
+36 0090 3a    
+36 0050 03 
+36 0054 03 
+36 0058 03     
+36 fffe 26 
+36 8000 1d 
+36 8001 80 
+36 8002 07 
+36 8003 38 
+36 8004 04 
+36 8010 04 
+36 8012 80 
+36 8013 07 
+36 8014 38 
+36 8015 04 
+36 8016 00 
+36 8017 00 
+36 8018 00 
+36 8019 00 
+36 fffe 30 
+36 1900 00 
+36 1901 00 
+36 1902 00 
+36 1903 00 
+36 1904 07 
+36 1905 80 
+36 1906 04 
+36 1907 38 
+36 1908 00 
+36 fffe 2c 
+36 0000 00 
+36 0001 07 
+36 0002 80 
+36 0004 04 
+36 0005 38 
+36 0008 10 
+36 0044 08 
+36 0045 04 
+36 0048 0E 
+36 0049 F0 
+36 fffe 26 
+36 2019 07 
+36 201a 80 
+36 201b 04 
+36 201c 38 
+36 201d 00 
+36 201e 00 
+36 201f 00 
+36 2020 00 
+36 2015 80 
+36 2017 1E 
+36 2018 00 
+36 2023 03 
+36 0000 00 
+36 0009 c4 
+36 fffe 30 
+36 0000 01 
+36 0001 00 
+36 0002 10 
+36 0003 20 
+36 0004 10 
+36 0050 20 
+36 0019 08 
+36 005e 7F 
+36 005f 07 
+36 0060 37 
+36 0061 04 
+36 0064 80 
+36 0065 07 
+36 0066 38 
+36 0067 04 
+36 0006 07 
+36 0007 80 
+36 0008 04 
+36 0009 38 
+36 000a 07 
+36 000b 80 
+36 000c 04 
+36 000d 38 
+36 fffe 2c
+36 0000 01                      
+36 0001 07                      
+36 0002 80                      
+36 0004 04                      
+36 0005 38                      
+36 0008 11                      
+36 0044 00
+36 0045 04                      
+36 0049 80                      
+36 0048 07     
+90 41 10
+90 34 B6
+80 06 AC # preemphasis setting 6.0 dB by default
+; Delay 5ms
+80 04 83
+; Delay 10ms
+90 00 e1
+90 15 0b
