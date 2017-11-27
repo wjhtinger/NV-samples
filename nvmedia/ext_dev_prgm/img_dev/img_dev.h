@@ -120,13 +120,13 @@ typedef struct {
     NvMediaISCDevice           *iscDeserializer;
     NvMediaISCDevice           *iscSerializer[MAX_AGGREGATE_IMAGES];
     NvMediaISCDevice           *iscSensor[MAX_AGGREGATE_IMAGES];
-    NvMediaISCDevice           *iscSensor2[MAX_AGGREGATE_IMAGES];
     NvMediaISCDevice           *iscBroadcastSerializer;
     NvMediaISCDevice           *iscBroadcastSensor;
-    NvMediaISCDevice           *iscBroadcastSensor2;
     NvU32                       sensorsNum;
     NvU32                       remapIdx[MAX_AGGREGATE_IMAGES];
     NvMediaBool                 simulator;
+    NvMediaISCDevice           *iscSensor2[MAX_AGGREGATE_IMAGES];
+    NvMediaISCDevice           *iscBroadcastSensor2;
 } ExtImgDevice;
 
 ExtImgDevice *

@@ -26,7 +26,7 @@ extern "C" {
 #define CAPTURE_ENQUEUE_TIMEOUT              100
 #define CAPTURE_FEED_FRAME_TIMEOUT           100
 #define CAPTURE_GET_FRAME_TIMEOUT            500
-#define CAPTURE_MAX_RETRY                    10
+#define CAPTURE_MAX_RETRY                    500
 
 typedef struct {
     NvMediaICPEx               *icpExCtx;

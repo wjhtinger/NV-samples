@@ -52,12 +52,12 @@
 ; Delay 2ms
 80 45 9C
 ; Delay 5ms
-80 46 80
-80 47 00    #vsync high
-80 48 b0
-80 49 00
-80 43 21    #eanble vsync re-gen
-80 67 C4    #align at HS rising edge
+#80 46 80
+#80 47 00    #vsync high
+#80 48 b0
+#80 49 00
+#80 43 21    #eanble vsync re-gen
+#80 67 C4    #align at HS rising edge
 
 90 34 36
 

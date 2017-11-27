@@ -26,7 +26,7 @@ extern "C" {
 #define CAPTURE_ENQUEUE_TIMEOUT              100
 #define CAPTURE_FEED_FRAME_TIMEOUT           100
 #define CAPTURE_GET_FRAME_TIMEOUT            500
-#define CAPTURE_MAX_RETRY                    10
+#define CAPTURE_MAX_RETRY                    500
 
 typedef struct {
     NvMediaICPEx               *icpExCtx;
@@ -67,8 +67,8 @@ typedef struct {
     /* General Variables */
     volatile NvMediaBool       *quit;
     TestArgs                   *testArgs;
-    NvU32                       numSensors;
-    NvU32                       numVirtualChannels;
+    NvU32                       numSensors;   //=testArgs->numSensors, 由--aggregate参数确定
+    NvU32                       numVirtualChannels;  //=numSensors
 } NvCaptureContext;
 
 NvMediaStatus

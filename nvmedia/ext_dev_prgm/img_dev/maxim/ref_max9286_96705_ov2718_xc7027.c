@@ -20,6 +20,7 @@
 
 #define OSC_MHZ 27
 #define MAX_GAIN (3.0 * 8 * (3 + 511 / 512.0))   //v4 max gain = 8
+#define USE_OV2718
 
 static void
 Deinit(ExtImgDevice *device)
@@ -224,7 +225,7 @@ SetupConfigLink(
             LOG_ERR("%s: Failed to set Deserializer input mode\n", __func__);
             return status;
         }
-
+		#if 1
         // disable overlap window
         LOG_DBG("%s: Disable Deserializer overlap window\n", __func__);
         status = NvMediaISCSetDeviceConfig(device->iscDeserializer,
@@ -233,7 +234,8 @@ SetupConfigLink(
              LOG_ERR("%s: Failed to disable Deserializer overlap window\n", __func__);
              return status;
         }
-
+		#endif
+		#if 1
         LOG_DBG("%s: Set Deserializer HIBW\n", __func__);
         status = NvMediaISCSetDeviceConfig(device->iscDeserializer,
                                                ISC_CONFIG_MAX9286_ENABLE_HIBW);
@@ -241,6 +243,7 @@ SetupConfigLink(
             LOG_ERR("%s: Failed to set Deserializer HIBW\n", __func__);
             return status;
         }
+		#endif
     }
 
     if(device->iscBroadcastSerializer) {
@@ -258,7 +261,7 @@ SetupConfigLink(
             return status;
         }
         usleep(2000);  //wait 1ms
-
+		#if 0
         // Enable Ser VSYNC re-generation
         LOG_DBG("%s: Enable Serializer VSYNC re-generation\n", __func__);
         status = NvMediaISCSetDeviceConfig(device->iscBroadcastSerializer,
@@ -267,6 +270,17 @@ SetupConfigLink(
             LOG_ERR("%s: Failed to enable Serializer VSYNC re-generation\n", __func__);
             return status;
         }
+		#endif
+
+		#if 1
+        status = NvMediaISCSetDeviceConfig(device->iscBroadcastSerializer,
+                                               ISC_CONFIG_MAX96705_SET_XBAR);
+        if(status != NVMEDIA_STATUS_OK) {
+            LOG_ERR("%s: Failed to ISC_CONFIG_MAX96705_SET_XBAR\n", __func__);
+            return status;
+        }
+		#endif 
+		
     }
 
     if(device->iscDeserializer) {
@@ -282,6 +296,15 @@ SetupConfigLink(
                 return status;
             }
         }
+    }
+
+    // Enable aggregator auto ack
+    LOG_DBG("%s: Enable aggregator auto ack\n", __func__);
+    status = NvMediaISCSetDeviceConfig(device->iscDeserializer,
+                                        ISC_CONFIG_MAX9286_ENABLE_AUTO_ACK);
+    if(status != NVMEDIA_STATUS_OK) {
+        LOG_ERR("%s: Failed to enable aggregator auto ack\n", __func__);
+        return status;
     }
 
     return status;
@@ -438,7 +461,7 @@ SetupVideoLink (
 
     if(device->iscBroadcastSensor) {
         // Set sensor defaults after software reset
-        LOG_DBG("%s: Set AR0231 defaults\n", __func__);
+        //LOG_DBG("%s: Set AR0231 defaults\n", __func__);
         status = NvMediaISCSetDefaults(device->iscBroadcastSensor);
         if(status != NVMEDIA_STATUS_OK) {
             LOG_ERR("%s: Failed to set AR0231 defaults\n", __func__);
@@ -451,13 +474,13 @@ SetupVideoLink (
                 case 1:
                     LOG_DBG("%s: Eanble external synchronization", __func__);
                     paramsMAX9286.SetFsyncMode.syncMode = ISC_SET_FSYNC_MAX9286_EXTERNAL_FROM_ECU;
-                    paramsMAX9286.SetFsyncMode.k_val = 1;  //pclk per frame
+                    paramsMAX9286.SetFsyncMode.k_val = (int)(51000600/device->property.frameRate + 0.5);//1;  //pclk per frame
                     break;
                 case 0:
                 default :
                     //set Ders fsync mode to manual and each periord has k_val pclk
-                    paramsMAX9286.SetFsyncMode.syncMode = ISC_SET_FSYNC_MAX9286_FSYNC_SEMI_AUTO;
-                    paramsMAX9286.SetFsyncMode.k_val = 1;  //pclk per frame
+                    paramsMAX9286.SetFsyncMode.syncMode = ISC_SET_FSYNC_MAX9286_FSYNC_SEMI_AUTO;//ISC_SET_FSYNC_MAX9286_FSYNC_MANUAL;//ISC_SET_FSYNC_MAX9286_FSYNC_SEMI_AUTO;
+                    paramsMAX9286.SetFsyncMode.k_val = 1;//(int)(51000600/device->property.frameRate + 0.5);//1;  //pclk per frame
             }
         } else {
             paramsMAX9286.SetFsyncMode.syncMode = ISC_SET_FSYNC_MAX9286_DISABLE_SYNC;
@@ -549,7 +572,7 @@ SetupVideoLink (
         // Set PreEmphasis
         WriteReadParametersParamMAX96705 paramsMAX96705;
         paramsMAX96705.preemp = ISC_SET_PREEMP_MAX96705_PLU_6_0DB; /* Bug 1850534 */
-
+		#if 1
         LOG_DBG("%s: Set all serializer Preemphasis setting\n", __func__);
         status = NvMediaISCWriteParameters(device->iscBroadcastSerializer,
                          ISC_WRITE_PARAM_CMD_MAX96705_SET_PREEMP,
@@ -559,6 +582,7 @@ SetupVideoLink (
             LOG_ERR("%s: Failed to set Preemphasis setting\n", __func__);
             return status;
         }
+		#endif
     }
 
     return status;
@@ -666,7 +690,7 @@ Init(
                             0,                      // instanceNumber
                             configParam->desAddr,   // deviceAddress
                             GetMAX9286Driver(),     // deviceDriver
-                            &advConfig);  // advancedConfig
+                            (configParam->camMap == NULL) ? NULL : &advConfig);  // advancedConfig
         if(!device->iscDeserializer) {
             LOG_ERR("%s: Failed to create deserializer device\n", __func__);
             goto failed;
@@ -708,22 +732,24 @@ Init(
             goto failed;
         }
     }
-
+	
+	#ifdef USE_OV2718
 	//ISP+sensorÄ£×é
 	device->iscBroadcastSensor2 = NvMediaISCDeviceCreate(
 									device->iscRoot,
 									device->iscBroadcastSerializer,
 									0,
 									configParam->slave ? NVMEDIA_ISC_SIMULATOR_ADDRESS :
-														 0x36,
+														  0x36, /*0x10,*/
 									GetOV2718Driver(),
 									NULL);														 
 	if(!device->iscBroadcastSensor2) {
 		LOG_ERR("%s: Failed to create broadcast sensor2 device\n", __func__);
 		goto failed;
 	}
+	#endif
 	
-
+	LOG_ERR("nnnnnnnnnnnnnnnnnnnnnnnnnnnnnn[%d] [%d][%d]\n", configParam->sensorsNum, configParam->serAddr[0], configParam->sensorAddr[0]);
     for(i = 0; i < configParam->sensorsNum; i++) {
         if(configParam->serAddr[i]) {
             // Create the serializer device
@@ -770,7 +796,7 @@ Init(
                                                                device->iscBroadcastSerializer,
                                     remapIdx[i],
                                     configParam->slave ? NVMEDIA_ISC_SIMULATOR_ADDRESS :
-                                                         0x10,
+                                                         0x36,
                                     GetOV2718Driver(),
                                     NULL);
         if(!device->iscSensor[i]) {
@@ -831,7 +857,8 @@ Start(ExtImgDevice *device)
             return status;
         }
     }
-
+	
+	#ifdef USE_OV2718
 	status = NvMediaISCSetDeviceConfig(device->iscBroadcastSensor,
 									   ISC_CONFIG_XC7027_I2C_BYPASS_ON);
 	if (status != NVMEDIA_STATUS_OK) {
@@ -864,7 +891,8 @@ Start(ExtImgDevice *device)
 		LOG_ERR("%s: Failed to enable ISC_CONFIG_XC7027_I2C_BYPASS_OFF\n", __func__);
 		return status;
 	}
-
+	#endif
+	
     if(device->iscBroadcastSerializer) {
         // Enable each serial link
         LOG_DBG("%s: Enable serial link\n", __func__);
@@ -881,7 +909,7 @@ Start(ExtImgDevice *device)
     // once we find the way the timing, will remove this delay
     if(!device->simulator) {
         for(i = 0; i < device->sensorsNum; i++) {
-            NvU32 timeout = 2000;
+            NvU32 timeout = 5000;
             LOG_DBG("%s: Get Link(%d) Status\n", __func__, device->remapIdx[i]);
             do {
                 // Check Video Link
@@ -937,7 +965,9 @@ static ImgProperty properties[] = {
                    /* resolution, oscMHz, fps,     pclk,  embTop, embBottom, inputFormat, pixelOrder */
     //IMG_PROPERTY_ENTRY(1920x1208, OSC_MHZ, 30, 88000000,     24,      0,       raw12,       grbg),
     //IMG_PROPERTY_ENTRY(1920x1008, OSC_MHZ, 36, 88000000,     16,      0,       raw12,       grbg),
-    IMG_PROPERTY_ENTRY(1920x1080,     26,  22, 88000000,      0,         0,        422p,        yuv),
+	IMG_PROPERTY_ENTRY(640x480, 	24,  10,  30000000,		0,		   0,		 422p,		  yuv),
+    IMG_PROPERTY_ENTRY(1280x720,     24,  30, 96000000,      0,         0,        422p,        yuv),
+	IMG_PROPERTY_ENTRY(1920x1080, 	 24,  10, 96000000,		 0,		    0,		  422p,		   yuv),
 };
 
 static ImgDevDriver device = {

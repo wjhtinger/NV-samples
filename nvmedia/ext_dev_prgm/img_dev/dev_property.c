@@ -155,7 +155,7 @@ GetPropertyEntry(
 
     if(!found)
         return NULL;
-
+	LOG_ERR("GetPropertyEntry: found[%d], resolution[%s], inputFormat[%s]  \n\r", i, imgProperty->resolution, imgProperty->inputFormat);
     return imgProperty;
 }
 

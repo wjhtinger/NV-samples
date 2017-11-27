@@ -1649,6 +1649,7 @@ WriteImage(
         case NvMediaSurfaceType_Image_YUV_422:
         case NvMediaSurfaceType_Image_YUYV_422:
         case NvMediaSurfaceType_Image_YUV_420:
+			#if 0
             if(fwrite(pDstBuff[0], width * height, 1, file) != 1) {
                 LOG_ERR("WriteImage, line %d: file write failed\n", __LINE__);
                 goto done;
@@ -1662,6 +1663,11 @@ WriteImage(
             if(fwrite(pChroma, (width * height) / (xScale * yScale), 1, file) != 1) {
                 LOG_ERR("WriteImage, line %d: file write failed\n", __LINE__);
                 goto done;
+            }
+			#endif 
+            if(fwrite(pDstBuff[0], imageSize, 1, file) != 1) {
+            LOG_ERR("WriteImage, line %d: file write failed\n", __LINE__);
+            goto done;
             }
             break;
         case NvMediaSurfaceType_Image_V16Y16U16X16:

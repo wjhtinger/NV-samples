@@ -361,7 +361,7 @@ GetSensorProperties(
     NvMediaISCSensorProperties *properties)
 {
     memset(properties, 0, sizeof(*properties));
-    properties->frameRate = 30.0f;
+    properties->frameRate = 20.0f;
     return NVMEDIA_STATUS_OK;
 }
 

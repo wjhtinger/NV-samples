@@ -533,6 +533,56 @@ CaptureFini(NvMainContext *mainCtx)
     return NVMEDIA_STATUS_OK;
 }
 
+static NvU32
+_ReadregThreadFunc(void *data)
+{	
+	NvCaptureContext *captureCtx = (NvCaptureContext *)data;
+	CaptureThreadCtx *threadCtx = &captureCtx->threadCtx[0];
+	NvMediaStatus status;
+	unsigned char buf;
+
+	int i;
+	
+    while (!(*threadCtx->quit)) {
+		//LOG_ERR("TTTTTTTTTTTTTT _ReadregThreadFunc\n");
+		usleep(2000 * 1000);
+		//status = NvMediaISCReadRegister(captureCtx->extImgDevice->iscDeserializer, 0x49, 1, &buf); 	
+		//LOG_ERR("TT [%x][%d]  \n", buf, status);
+		
+		/*
+		LOG_ERR("TTTTTTTTTTTTTTTTTTTTTTTTT begin\n");
+		for(i = 0; i < 0xff; i++)
+		{
+			status = NvMediaISCReadRegister(captureCtx->extImgDevice->iscSerializer[0], i, 1, &buf); 
+			if(status != NVMEDIA_STATUS_OK)
+				printf("TTT readreg err[%d]", i);
+
+			printf("%02x ", buf);
+			
+		}
+		LOG_ERR("TTTTTTTTTTTTTTTTTTTTTTTTT end\n");
+		*/
+		status = NvMediaISCReadRegister(captureCtx->extImgDevice->iscDeserializer, 0x0, 1, &buf); 
+		if(status != NVMEDIA_STATUS_OK)
+			LOG_ERR("TTTTTTTTTTTTTT iscDeserializer readreg err[%d] \n", status);
+		else
+			LOG_ERR("TTTTTTTTTTTTTT iscDeserializer %02x \n", buf);
+
+		
+		status = NvMediaISCReadRegister(captureCtx->extImgDevice->iscBroadcastSerializer, 0x0, 1, &buf); 
+		if(status != NVMEDIA_STATUS_OK)
+			LOG_ERR("TTTTTTTTTTTTTT iscBroadcastSerializer readreg err[%p][%p][%p]\n", 
+			captureCtx->extImgDevice,
+			captureCtx->extImgDevice->iscDeserializer,
+			captureCtx->extImgDevice->iscBroadcastSerializer);
+		else
+			LOG_ERR("TTTTTTTTTTTTTT iscBroadcastSerializer %02x \n", buf);
+		
+	}
+
+    return NVMEDIA_STATUS_OK;
+}
+
 NvMediaStatus
 CaptureProc(NvMainContext *mainCtx)
 {
@@ -571,6 +621,11 @@ CaptureProc(NvMainContext *mainCtx)
             }
         }
     }
+	NvThread *readreg;
+	status = NvThreadCreate(&readreg,
+                                    &_ReadregThreadFunc,
+                                    (void *)captureCtx,
+                                    NV_THREAD_PRIORITY_NORMAL);
 failed:
     return status;
 }

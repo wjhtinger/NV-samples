@@ -280,9 +280,9 @@ ParseArgs (
     args->imagesNum = 1;
     args->outputWidth = 0;
     args->outputHeight = 0;
-    args->outputSurfType = NvMediaSurfaceType_Image_YUV_420;
+    args->outputSurfType = NvMediaSurfaceType_Image_YUV_422;
     args->ispSelect = NVMEDIA_ISP_SELECT_ISP_A;
-    args->ispOutType = NvMediaSurfaceType_Image_YUV_420;
+    args->ispOutType = NvMediaSurfaceType_Image_YUV_422;
     args->fifoMode = NVMEDIA_TRUE;
     args->camMap.enable = CAM_ENABLE_DEFAULT;
     args->camMap.mask = CAM_MASK_DEFAULT;

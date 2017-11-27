@@ -63,7 +63,7 @@ unsigned char max96705_regen_vsync[] = {
     2, 0x67, 0xc4,   //align at HS rising edge
 };
 
-unsigned char max96705_set_xbar[] = {
+unsigned char max96705_set_xbar_org[] = {
     2, 0x20, 0x04,
     2, 0x21, 0x03,
     2, 0x22, 0x02,
@@ -99,6 +99,26 @@ unsigned char max96705_set_xbar[] = {
     2, 0x40, 0x2F,
     2, 0x41, 0x0E,
 };
+
+unsigned char max96705_set_xbar[] = {
+	2, 0x20, 07,
+	2, 0x21, 06,
+	2, 0x22, 05,
+	2, 0x23, 04,
+	2, 0x24, 03,
+	2, 0x25, 02,
+	2, 0x26, 01,
+	2, 0x27, 00,
+	2, 0x30, 17,
+	2, 0x31, 16,
+	2, 0x32, 15,
+	2, 0x33, 14,
+	2, 0x34, 13,
+	2, 0x35, 12,
+	2, 0x36, 11,
+	2, 0x37, 10,
+};
+
 
 unsigned char max96705_auto_config_link[] = {
     2, 0x67, 0xE4,
@@ -525,7 +545,7 @@ SetInputMode(
     funcs = ((_DriverHandle *)handle)->funcs;
 
     max96705_config_input_mode[2] =  (unsigned char)inputmode->byte;
-
+	LOG_DBG("MMMMMMMMMMMMMMMMMMMMM max96705 SetInputMode[%x] \n", max96705_config_input_mode[2]);
     status = funcs->Write(
         transaction,
         max96705_config_input_mode[0],

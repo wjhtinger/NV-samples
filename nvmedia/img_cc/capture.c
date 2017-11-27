@@ -29,6 +29,11 @@
              (MAP_LINK_CSIOUT(csiOut, 1) == MAP_LINK_CSIOUT(csiOut, 3)) || \
              (MAP_LINK_CSIOUT(csiOut, 2) == MAP_LINK_CSIOUT(csiOut, 3))) ? 1 : 0)
 
+
+static NvU32
+_ReadregThreadFunc(void *data);
+
+
 static NvMediaStatus
 _DetermineCaptureStatus(NvMediaBool *captureFlag,
                         NvU32 frameNumber,
@@ -247,7 +252,7 @@ _CheckCamReMap(NvCaptureContext *captureCtx,
     NvMediaStatus status = NVMEDIA_STATUS_OK;
     I2cHandle i2cHandle = NULL;
     NvU8 address[2]={0};
-
+	LOG_ERR("_CheckCamReMap IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII\n");
     /* Check Deserializer device ID */
     if (testutil_i2c_open(captureCtx->i2cDeviceNum,
                           &i2cHandle) < 0) {
@@ -357,7 +362,7 @@ _SetICPSettings(CaptureThreadCtx *ctx,
     inputFormat = captureParams->inputFormat.stringValue;
     if (!strcasecmp(inputFormat, "422p")) {
         ctx->inputFormat.inputFormatType = NVMEDIA_IMAGE_CAPTURE_INPUT_FORMAT_TYPE_YUV422;
-        ctx->surfFormat.surfaceFormatType = NVMEDIA_IMAGE_CAPTURE_SURFACE_FORMAT_TYPE_Y_V_U_422;
+        ctx->surfFormat.surfaceFormatType = NVMEDIA_IMAGE_CAPTURE_SURFACE_FORMAT_TYPE_YUYV_422;
         ctx->surfType = NvMediaSurfaceType_Image_YUV_422;
         ctx->rawBytesPerPixel = 0;
     } else if (!strcasecmp(inputFormat, "rgb")) {
@@ -748,6 +753,41 @@ CaptureInit(NvMainContext *mainCtx)
     }
 
     LOG_DBG("%s: Creating ICP context\n", __func__);
+	LOG_ERR("######222 width[%d], height[%d]\n\r", captureCtx->icpSettingsEx.settings[0].icpSettings.width, captureCtx->icpSettingsEx.settings[0].icpSettings.height);
+	LOG_ERR("%s: ## NvMediaICPCreateEx: interfaceType[%d], interfaceLanes[%d], numVirtualChannels[%d]\n", __func__, 
+		captureCtx->icpSettingsEx.interfaceType, captureCtx->icpSettingsEx.interfaceLanes, captureCtx->icpSettingsEx.numVirtualChannels);
+	for(i = 0; i < captureCtx->numVirtualChannels; i++ ){
+		LOG_ERR("## NvMediaICPCreateEx: virtualChannelIndex[%d], interfaceType[%d] \n",
+			captureCtx->icpSettingsEx.settings[i].virtualChannelIndex,
+			captureCtx->icpSettingsEx.settings[i].icpSettings.interfaceType
+			);
+
+		LOG_ERR("## NvMediaICPCreateEx:inputFormat.inputFormatType[%d], inputFormat.bitsPerPixel[%d], inputFormat.pixelOrder[%d],surfaceFormat.surfaceFormatType[%d], surfaceFormat.bitsPerPixel[%d], surfaceFormat.pixelOrder[%d] \n",
+			captureCtx->icpSettingsEx.settings[i].icpSettings.inputFormat.inputFormatType,
+			captureCtx->icpSettingsEx.settings[i].icpSettings.inputFormat.bitsPerPixel,
+			captureCtx->icpSettingsEx.settings[i].icpSettings.inputFormat.pixelOrder,
+			captureCtx->icpSettingsEx.settings[i].icpSettings.surfaceFormat.surfaceFormatType,
+			captureCtx->icpSettingsEx.settings[i].icpSettings.surfaceFormat.bitsPerPixel,
+			captureCtx->icpSettingsEx.settings[i].icpSettings.surfaceFormat.pixelOrder
+			);
+
+		LOG_ERR("## NvMediaICPCreateEx: width[%d], height[%d]\n",
+			captureCtx->icpSettingsEx.settings[i].icpSettings.width,
+			captureCtx->icpSettingsEx.settings[i].icpSettings.height
+		);			
+
+		LOG_ERR("## NvMediaICPCreateEx: startX[%d], startY[%d], embeddedDataLines[%d], interfaceLanes[%d], pixelFrequency[%d], thsSettle[%d], embeddedDataType[%d]\n",
+			captureCtx->icpSettingsEx.settings[i].icpSettings.startX,
+			captureCtx->icpSettingsEx.settings[i].icpSettings.startY,
+			captureCtx->icpSettingsEx.settings[i].icpSettings.embeddedDataLines,
+			captureCtx->icpSettingsEx.settings[i].icpSettings.interfaceLanes,
+			captureCtx->icpSettingsEx.settings[i].icpSettings.pixelFrequency,
+			captureCtx->icpSettingsEx.settings[i].icpSettings.thsSettle,
+			captureCtx->icpSettingsEx.settings[i].icpSettings.embeddedDataType
+			);	
+			
+	}
+		
 
     /* Create NvMediaICPEx object */
     captureCtx->icpExCtx = NvMediaICPCreateEx(&captureCtx->icpSettingsEx);
@@ -969,6 +1009,57 @@ CaptureProc(NvMainContext *mainCtx)
             }
         }
     }
+
+	
+	NvThread *readreg;
+	status = NvThreadCreate(&readreg,
+                                    &_ReadregThreadFunc,
+                                    (void *)captureCtx,
+                                    NV_THREAD_PRIORITY_NORMAL);
 failed:
     return status;
+}
+
+
+static NvU32
+_ReadregThreadFunc(void *data)
+{	
+	NvCaptureContext *captureCtx = (NvCaptureContext *)data;
+	//CaptureThreadCtx *threadCtx = &captureCtx->threadCtx[0];
+	//NvMediaStatus status;
+    I2cHandle i2cHandle = NULL;
+    NvU8 address[2]={0};
+
+
+    if (testutil_i2c_open(captureCtx->i2cDeviceNum,
+                      &i2cHandle) < 0) {
+	    LOG_ERR("%s: i2c_open() failed\n", __func__);
+	    return NVMEDIA_STATUS_ERROR;
+  	}
+
+	for(;;){	
+		usleep(1000 * 2000);
+		
+	    address[0] = 0x1E;  /* MAX9286_DEVICE_ID_REGISTER: 0x1E */
+	    testutil_i2c_read_subaddr(i2cHandle,
+	                              captureCtx->captureParams.deserAddress.uIntValue,
+	                              address,
+	                              1,
+	                              &address[1],
+	                              1);
+
+		LOG_ERR("RRRRRRRRRRRRRRRRRRRR000 [%x] \n", address[1]);						  
+		
+		address[0] = 0x49;  /* MAX9286_DEVICE_ID_REGISTER: 0x1E */
+		testutil_i2c_read_subaddr(i2cHandle,
+							captureCtx->captureParams.deserAddress.uIntValue,
+							address,
+							1,
+							&address[1],
+							1);
+
+		LOG_ERR("RRRRRRRRRRRRRRRRRRRR111 [%x] \n", address[1]); 					  
+	}
+					  
+
 }
