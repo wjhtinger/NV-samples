@@ -119,6 +119,26 @@ unsigned char max96705_set_xbar[] = {
 	2, 0x37, 10,
 };
 
+unsigned char max96705_set_xbar_4[] = {
+	2, 0x20, 07 + 4,
+	2, 0x21, 06 + 4,
+	2, 0x22, 05 + 4,
+	2, 0x23, 04 + 4,
+	2, 0x24, 03 + 4,
+	2, 0x25, 02 + 4,
+	2, 0x26, 01 + 4,
+	2, 0x27, 00 + 4,
+	2, 0x30, 17 + 4,
+	2, 0x31, 16 + 4,
+	2, 0x32, 15 + 4,
+	2, 0x33, 14 + 4,
+	2, 0x34, 13 + 4,
+	2, 0x35, 12 + 4,
+	2, 0x36, 11 + 4,
+	2, 0x37, 10 + 4,
+};
+
+
 
 unsigned char max96705_auto_config_link[] = {
     2, 0x67, 0xE4,
@@ -360,8 +380,8 @@ SetDeviceConfig(
             status = WriteArray(
                 handle,
                 transaction,
-                sizeof(max96705_set_xbar),
-                max96705_set_xbar);
+                sizeof(max96705_set_xbar_4),
+                max96705_set_xbar_4);
             break;
          case ISC_CONFIG_MAX96705_SET_MAX_REMOTE_I2C_MASTER_TIMEOUT:
             status = WriteArray(
