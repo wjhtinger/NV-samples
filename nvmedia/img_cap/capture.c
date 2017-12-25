@@ -59,8 +59,8 @@ _SetICPSettings(CaptureThreadCtx *ctx,
 
     /* Set surface format */
     if (!strcasecmp(inputFormat, "422p")) {
-        ctx->surfFormat.surfaceFormatType = NVMEDIA_IMAGE_CAPTURE_SURFACE_FORMAT_TYPE_Y_V_U_422;
-        ctx->surfType = NvMediaSurfaceType_Image_YUV_422;
+        ctx->surfFormat.surfaceFormatType = NVMEDIA_IMAGE_CAPTURE_SURFACE_FORMAT_TYPE_YUYV_422;//NVMEDIA_IMAGE_CAPTURE_SURFACE_FORMAT_TYPE_Y_V_U_422;
+        ctx->surfType = NvMediaSurfaceType_Image_YUYV_422;//NvMediaSurfaceType_Image_YUV_422;
         ctx->rawBytesPerPixel = 0;
     } else if (!strcasecmp(inputFormat, "rgb")) {
         ctx->surfFormat.surfaceFormatType = NVMEDIA_IMAGE_CAPTURE_SURFACE_FORMAT_TYPE_R8G8B8A8;
@@ -562,6 +562,7 @@ _ReadregThreadFunc(void *data)
 		}
 		LOG_ERR("TTTTTTTTTTTTTTTTTTTTTTTTT end\n");
 		*/
+		/*
 		status = NvMediaISCReadRegister(captureCtx->extImgDevice->iscDeserializer, 0x0, 1, &buf); 
 		if(status != NVMEDIA_STATUS_OK)
 			LOG_ERR("TTTTTTTTTTTTTT iscDeserializer readreg err[%d] \n", status);
@@ -577,6 +578,10 @@ _ReadregThreadFunc(void *data)
 			captureCtx->extImgDevice->iscBroadcastSerializer);
 		else
 			LOG_ERR("TTTTTTTTTTTTTT iscBroadcastSerializer %02x \n", buf);
+
+		*/
+
+		//isp_reg_info(captureCtx->extImgDevice->iscBroadcastSensor);
 		
 	}
 
@@ -628,4 +633,75 @@ CaptureProc(NvMainContext *mainCtx)
                                     NV_THREAD_PRIORITY_NORMAL);
 failed:
     return status;
+}
+
+
+void isp_reg_info(NvMediaISCDevice *device){
+    NvMediaStatus status;
+	unsigned char buf;
+
+	buf = 0x80;
+	status  = NvMediaISCWriteRegister(device, 0xfffd, 1, &buf);
+	buf = 0x50;
+	status |= NvMediaISCWriteRegister(device, 0xfffe, 1, &buf);	
+	buf = 0x66;
+	status |= NvMediaISCWriteRegister(device, 0x0137, 1, &buf);
+	status |= NvMediaISCReadRegister(device, 0x0137, 1, &buf); 
+	if(status != NVMEDIA_STATUS_OK)
+		LOG_ERR("IIIIIIIIIIIII isp_reg_info readreg err[%d] \n", status);
+	else		
+		LOG_ERR("IIIIIIIIIIIII isp_reg_info readreg 0x0137 [%x] \n", buf);
+
+
+	buf = 0x80;
+	status  = NvMediaISCWriteRegister(device, 0xfffd, 1, &buf);
+	buf = 0x26;
+	status |= NvMediaISCWriteRegister(device, 0xfffe, 1, &buf);	
+	status |= NvMediaISCReadRegister(device, 0x0038, 1, &buf); 
+	LOG_ERR("IIIIIIIIIIIII isp_reg_info readreg 0x0038 [%x] \n", buf);
+	status |= NvMediaISCReadRegister(device, 0x0039, 1, &buf); 
+	LOG_ERR("IIIIIIIIIIIII isp_reg_info readreg 0x0039 [%x] \n", buf);
+	status |= NvMediaISCReadRegister(device, 0x003a, 1, &buf); 
+	LOG_ERR("IIIIIIIIIIIII isp_reg_info readreg 0x003a [%x] \n", buf);
+	status |= NvMediaISCReadRegister(device, 0x003b, 1, &buf); 
+	LOG_ERR("IIIIIIIIIIIII isp_reg_info readreg 0x003b [%x] \n", buf);
+	if(status != NVMEDIA_STATUS_OK)
+		LOG_ERR("IIIIIIIIIIIII2 isp_reg_info readreg err[%d] \n", status);	
+	
+
+	buf = 0x80;
+	status  = NvMediaISCWriteRegister(device, 0xfffd, 1, &buf);
+	buf = 0x30;
+	status |= NvMediaISCWriteRegister(device, 0xfffe, 1, &buf);	
+	status |= NvMediaISCReadRegister(device, 0x0028, 1, &buf); 
+	LOG_ERR("IIIIIIIIIIIII isp_reg_info readreg 0x0028 [%x] \n", buf);
+	status |= NvMediaISCReadRegister(device, 0x0029, 1, &buf); 
+	LOG_ERR("IIIIIIIIIIIII isp_reg_info readreg 0x0029 [%x] \n", buf);
+	status |= NvMediaISCReadRegister(device, 0x002a, 1, &buf); 
+	LOG_ERR("IIIIIIIIIIIII isp_reg_info readreg 0x002a [%x] \n", buf);
+	status |= NvMediaISCReadRegister(device, 0x002b, 1, &buf); 
+	LOG_ERR("IIIIIIIIIIIII isp_reg_info readreg 0x002b [%x] \n", buf);
+	status |= NvMediaISCReadRegister(device, 0x2f06, 1, &buf); 
+	LOG_ERR("IIIIIIIIIIIII isp_reg_info readreg 0x2f06 [%x] \n", buf);
+	status |= NvMediaISCReadRegister(device, 0x2f07, 1, &buf); 
+	LOG_ERR("IIIIIIIIIIIII isp_reg_info readreg 0x2f07 [%x] \n", buf);
+	status |= NvMediaISCReadRegister(device, 0x2f08, 1, &buf); 
+	LOG_ERR("IIIIIIIIIIIII isp_reg_info readreg 0x2f08 [%x] \n", buf);	
+	status |= NvMediaISCReadRegister(device, 0x2f09, 1, &buf); 
+	LOG_ERR("IIIIIIIIIIIII isp_reg_info readreg 0x2f09 [%x] \n", buf);	
+	if(status != NVMEDIA_STATUS_OK)
+		LOG_ERR("IIIIIIIIIIIII3 isp_reg_info readreg err[%d] \n", status);	
+	
+
+	buf = 0x80;
+	status  = NvMediaISCWriteRegister(device, 0xfffd, 1, &buf);
+	buf = 0x14;
+	status |= NvMediaISCWriteRegister(device, 0xfffe, 1, &buf);	
+	status |= NvMediaISCReadRegister(device, 0x002b, 1, &buf); 
+	LOG_ERR("IIIIIIIIIIIII isp_reg_info readreg 0x002b [%x] \n", buf);
+	if(status != NVMEDIA_STATUS_OK)
+		LOG_ERR("IIIIIIIIIIIII4 isp_reg_info readreg err[%d] \n", status);	
+	
+	
+
 }
